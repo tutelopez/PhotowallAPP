@@ -2,8 +2,10 @@ import { Schema, model } from 'mongoose';
 
 export enum UserRole {
   ORGANIZER = 'organizer',
-  GUEST = 'guest'
+  GUEST = 'guest',
+  SUPER_ADMIN = 'super_admin',
 }
+
 
 const UserSchema = new Schema(
   {
@@ -22,6 +24,12 @@ const UserSchema = new Schema(
       type: String,
       enum: Object.values(UserRole),
       default: UserRole.ORGANIZER
+    },
+
+    // 👇 SOLO PARA GUESTS
+    event: {
+      type: Schema.Types.ObjectId,
+      ref: 'Event'
     }
   },
   { timestamps: true }

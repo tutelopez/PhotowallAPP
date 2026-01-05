@@ -7,5 +7,15 @@ declare global {
     }
   }
 }
+declare global {
+  namespace Express {
+    interface Request {
+      guest?: GuestDocument;
+      file?: Multer.File;
+      files?: Multer.File[];
+      superAdmin?: UserDocument;
+    }
+  }
+}
 
 export {};
