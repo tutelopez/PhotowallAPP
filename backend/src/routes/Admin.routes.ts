@@ -1,4 +1,7 @@
 import { Router } from 'express';
+import { authenticate } from '../middlewares/Auth.middlware';
+import { authorizeRoles } from '../middlewares/Role.middleware';
+import { ensureAuth } from '../middlewares/Auth.middlware';
 import { requireSuperAdmin } from '../middlewares/requireSuperAdmin.middleware';
 import {
     createSuperAdmin, 
@@ -14,6 +17,7 @@ import {
       resetAllData,
       seedDatabase 
     } from '../controller/Admin.controller';
+import { UserRole } from '../models/User.model';
 
 const router = Router();
 
@@ -25,21 +29,21 @@ router.post('/super-admin', createSuperAdmin);
 router.use(requireSuperAdmin);
 
 // GET (SUPER ADMIN)
-router.get('/organizers', getAllOrganizers);
-router.get('/organizers/:organizerId/events', getEventsByOrganizer);
-router.get('/organizers/:organizerId/guests', getGuestsByOrganizer);
-router.get('/:eventId/guests', getGuestsByEvent);
-router.get('/events', getAllEvents);
+router.get('/organizers', ensureAuth([UserRole.SUPER_ADMIN]), getAllOrganizers);
+router.get('/organizers/:organizerId/events', ensureAuth([UserRole.SUPER_ADMIN]), getEventsByOrganizer);
+router.get('/organizers/:organizerId/guests', ensureAuth([UserRole.SUPER_ADMIN]), getGuestsByOrganizer);
+router.get('/:eventId/guests', ensureAuth([UserRole.SUPER_ADMIN]), getGuestsByEvent);
+router.get('/events', ensureAuth([UserRole.SUPER_ADMIN]),  getAllEvents);
 
 // DELETE (SUPER ADMIN)
-router.delete('/events', deleteAllEvents);
-router.delete('/events/:eventId', deleteEventById);
-router.delete('/organizers/:organizerId/events', deleteEventsByOrganizer);
-router.delete('/organizers/:organizerId', deleteOrganizer);
-router.delete('/reset-all', resetAllData);
+router.delete('/events', ensureAuth([UserRole.SUPER_ADMIN]), deleteAllEvents);
+router.delete('/events/:eventId', ensureAuth([UserRole.SUPER_ADMIN]), deleteEventById);
+router.delete('/organizers/:organizerId/events', ensureAuth([UserRole.SUPER_ADMIN]), deleteEventsByOrganizer);
+router.delete('/organizers/:organizerId', ensureAuth([UserRole.SUPER_ADMIN]), deleteOrganizer);
+router.delete('/reset-all', ensureAuth([UserRole.SUPER_ADMIN]), resetAllData);
 
 
 //POBLAR BASE DE DATOS
-router.post('/seed', seedDatabase);
+router.post('/seed', ensureAuth([UserRole.SUPER_ADMIN]), seedDatabase);
 
 export default router;

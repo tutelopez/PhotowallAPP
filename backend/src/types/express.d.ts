@@ -14,7 +14,14 @@ declare global {
       file?: Multer.File;
       files?: Multer.File[];
       superAdmin?: UserDocument;
-    }
+      user?: {
+        id: string;
+        name: string;
+        email: string;
+        role: UserRole;
+      };
+    };
+    
   }
 }
 

@@ -30,6 +30,11 @@ const UserSchema = new Schema(
     event: {
       type: Schema.Types.ObjectId,
       ref: 'Event'
+    },
+      // 👇 password opcional, solo para organizers y guests que inicien sesión con formulario
+    password: {
+      type: String,
+      required: false
     }
   },
   { timestamps: true }

@@ -1,8 +1,10 @@
+// routes/guest.route.ts
 import { Router } from 'express';
-import { joinEvent } from '../controller/Guest.controller';
+import { joinEventById } from '../controller/Guest.controller';
 
 const router = Router();
 
-router.post('/join/:slug', joinEvent);
+// ahora el invitado se une por ID de evento
+router.post('/join/:eventId', joinEventById);
 
 export default router;

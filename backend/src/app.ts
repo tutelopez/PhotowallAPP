@@ -5,7 +5,9 @@ import eventRoutes from './routes/event.routes';
 import userRoutes from './routes/User.routes';
 import guestRoutes from './routes/Guest.routes';
 import photoRoutes from './routes/Photo.routes';
-import adminRoutes from './routes/Admin.routes'
+import adminRoutes from './routes/Admin.routes';
+import authRoutes from './routes/Auth.routes';
+
 
 const app = express();
 
@@ -20,7 +22,9 @@ app.use('/api/events', eventRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/guests', guestRoutes);
 app.use('/api/photos', photoRoutes);
-app.use('/api/admin', adminRoutes)
+app.use('/api/admin', adminRoutes);
+app.use('/api/auth', authRoutes);
+
 
 // 🌐 Socket.IO
 const server = http.createServer(app);

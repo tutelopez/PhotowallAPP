@@ -5,12 +5,14 @@ import { EventModel, EventType } from '../models/Event.model';
 import { PhotoModel } from '../models/Photo.model';
 import cloudinary from '../config/cloudinary';
 import slugify from 'slugify';
+import bcrypt from 'bcrypt';
+import { GuestModel } from '../models/Guest.model';
 
 const SUPER_ADMIN_SECRET = process.env.SUPER_ADMIN_SECRET;
 
+
 export const createSuperAdmin = async (req: Request, res: Response) => {
   try {
-
     // 🔒 BLOQUEAR FUERA DE DEVELOPMENT
     if (process.env.NODE_ENV !== 'development') {
       return res.status(403).json({
@@ -18,11 +20,12 @@ export const createSuperAdmin = async (req: Request, res: Response) => {
       });
     }
 
-    const { name, email, secret } = req.body;
+    const { name, email, secret, password } = req.body;
 
-    if (!name || !email || !secret) {
+    // Validaciones
+    if (!name || !email || !secret || !password) {
       return res.status(400).json({
-        message: 'name, email y secret son obligatorios'
+        message: 'name, email, secret y password son obligatorios'
       });
     }
 
@@ -39,10 +42,14 @@ export const createSuperAdmin = async (req: Request, res: Response) => {
       });
     }
 
+    // Hashear la contraseña que envía el usuario
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     const superAdmin = await UserModel.create({
       name,
       email,
-      role: UserRole.SUPER_ADMIN
+      role: UserRole.SUPER_ADMIN,
+      password: hashedPassword
     });
 
     res.status(201).json({
@@ -118,21 +125,45 @@ export const getGuestsByEvent = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'eventId es requerido' });
     }
 
-    const guests = await UserModel.find({
+    // Invitados del UserModel
+    const userGuests = await UserModel.find({
       role: UserRole.GUEST,
       event: eventId
     }).sort({ createdAt: 1 });
 
+    // Invitados del GuestModel
+    const guestGuests = await GuestModel.find({
+      event: eventId
+    }).sort({ createdAt: 1 });
+
+    // Combinar resultados, **sin token**
+    const allGuests = [
+      ...userGuests.map(g => ({
+        id: g._id,
+        name: g.name,
+        email: g.email || null,
+        role: g.role || 'guest',
+        createdAt: g.createdAt
+      })),
+      ...guestGuests.map(g => ({
+        id: g._id,
+        name: g.name,
+        role: 'guest',
+        createdAt: g.createdAt
+        // 🔒 NO incluimos token
+      }))
+    ];
+
     res.json({
-      total: guests.length,
-      guests
+      total: allGuests.length,
+      guests: allGuests
     });
-  } catch (error) {
+
+  } catch (error: any) {
     console.error(error);
     res.status(500).json({ message: 'Error obteniendo invitados del evento' });
   }
 };
-
 //eliminar evento por ID
 export const deleteEventById = async (req: Request, res: Response) => {
   try {

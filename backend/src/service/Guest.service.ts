@@ -1,12 +1,10 @@
+// service/Guest.service.ts
 import { GuestModel } from '../models/Guest.model';
 import { EventModel } from '../models/Event.model';
 
-export const createGuest = async (
-  eventSlug: string,
-  guestName: string
-) => {
+export const createGuestById = async (eventId: string, guestName: string) => {
   const event = await EventModel.findOne({
-    slug: eventSlug,
+    _id: eventId,
     isActive: true
   });
 

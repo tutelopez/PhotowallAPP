@@ -1,4 +1,5 @@
 import cloudinary from '../config/cloudinary';
+import { GuestModel } from '../models/Guest.model';
 import { PhotoModel } from '../models/Photo.model';
 import { UserModel, UserRole } from '../models/User.model';
 
@@ -7,18 +8,24 @@ export const uploadPhoto = async (
   eventId: string,
   guestId: string
 ) => {
-  // 1️⃣ validar invitado EXISTE y es invitado
-  const guest = await UserModel.findOne({
-    _id: guestId,
-    role: UserRole.GUEST,
-    event: eventId // <-- asegúrate que el invitado pertenece al evento
-  });
+  // 1️⃣ buscar invitado en UserModel (invitados con login)
+  let guest = await UserModel.findOne({ _id: guestId, role: UserRole.GUEST });
 
+  // 2️⃣ si no existe, buscar en GuestModel (invitados sin login)
   if (!guest) {
-    throw new Error('Invitado no encontrado o no pertenece a este evento');
+    guest = await GuestModel.findById(guestId);
   }
 
-  // 2️⃣ subir a Cloudinary
+  if (!guest) {
+    throw new Error('Invitado no encontrado');
+  }
+
+  // 3️⃣ Validar que el invitado pertenezca al evento si tiene la propiedad event
+  if ((guest as any).event && (guest as any).event.toString() !== eventId) {
+    throw new Error('Invitado no pertenece a este evento');
+  }
+
+  // 4️⃣ subir a Cloudinary
   const result = await cloudinary.uploader.upload(
     `data:${file.mimetype};base64,${file.buffer.toString('base64')}`,
     {
@@ -26,10 +33,10 @@ export const uploadPhoto = async (
     }
   );
 
-  // 3️⃣ guardar en Mongo
+  // 5️⃣ guardar en Mongo
   return await PhotoModel.create({
     event: eventId,
-    uploadedBy: guest.name, // 👈 nombre REAL del invitado
+    uploadedBy: guest.name,
     imageUrl: result.secure_url,
     publicId: result.public_id
   });

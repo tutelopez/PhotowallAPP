@@ -1,9 +1,10 @@
+// controllers/Guest.controller.ts
 import { Request, Response } from 'express';
 import * as GuestService from '../service/Guest.service';
 
-export const joinEvent = async (req: Request, res: Response) => {
+export const joinEventById = async (req: Request, res: Response) => {
   try {
-    const { slug } = req.params;
+    const { eventId } = req.params;   // ahora usamos eventId en lugar de slug
     const { name } = req.body;
 
     if (!name || name.trim().length < 2) {
@@ -12,14 +13,14 @@ export const joinEvent = async (req: Request, res: Response) => {
       });
     }
 
-    const guest = await GuestService.createGuest(slug, name);
+    const guest = await GuestService.createGuestById(eventId, name);
 
     res.status(201).json({
-  guestId: guest._id,
-  token: guest.token,
-  name: guest.name
-});
-  } catch (error) {
-    res.status(404).json({ message: 'Evento no disponible' });
+      guestId: guest._id,
+      name: guest.name,
+      token: guest.token // si luego quieres JWT para invitados
+    });
+  } catch (error: any) {
+    res.status(404).json({ message: error.message || 'Evento no disponible' });
   }
 };
