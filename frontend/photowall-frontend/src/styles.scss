@@ -5,3 +5,7 @@
 
 html, body { height: 100%; }
 body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+/* 🔥 Eliminar cursor de texto fuera de inputs */
+*:not(input):not(textarea):not([contenteditable="true"]) {
+  caret-color: transparent;
+}

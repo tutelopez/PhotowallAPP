@@ -34,6 +34,15 @@ const EventSchema = new Schema(
       default: true
     },
 
+    coverImage: {
+      type: String,
+      default: ''
+    },
+
+    profileImage: {
+      type: String,
+      default: ''
+    },
 
      organizer: {
         type: Schema.Types.ObjectId,

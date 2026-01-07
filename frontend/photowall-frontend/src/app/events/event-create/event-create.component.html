@@ -1,0 +1,57 @@
+<div class="container mt-4">
+
+  <!-- CARDS -->
+  <div *ngIf="!selectedType" class="row">
+    <div class="col-md-4 mb-3" *ngFor="let type of eventTypes">
+      <div class="card h-100 cursor-pointer"
+           (click)="selectType(type.value)">
+        <div class="card-body text-center">
+          <h5>{{ type.label }}</h5>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FORMULARIO -->
+  <div *ngIf="selectedType" class="mt-4">
+    <h4>Crear evento - {{ selectedType | uppercase }}</h4>
+
+    <form [formGroup]="eventForm" (ngSubmit)="createEvent()">
+
+      <!-- Nombre -->
+      <div class="mb-3">
+        <label>Nombre del evento</label>
+        <input class="form-control" formControlName="name">
+      </div>
+
+      <!-- Fecha -->
+      <div class="mb-3">
+        <label>Fecha</label>
+        <input type="date" class="form-control" formControlName="date">
+      </div>
+
+      <!-- Foto de perfil -->
+      <div class="mb-3">
+        <label>Foto de perfil</label>
+        <input
+          type="file"
+          class="form-control"
+          accept="image/*"
+          (change)="onProfileImageSelected($event)">
+      </div>
+
+      <!-- Foto de portada -->
+      <div class="mb-3">
+        <label>Foto de portada</label>
+        <input
+          type="file"
+          class="form-control"
+          accept="image/*"
+          (change)="onCoverImageSelected($event)">
+      </div>
+
+      <button class="btn btn-success">Crear evento</button>
+    </form>
+  </div>
+
+</div>

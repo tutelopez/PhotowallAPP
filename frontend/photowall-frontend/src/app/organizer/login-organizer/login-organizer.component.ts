@@ -28,26 +28,40 @@ export class LoginOrganizerComponent {
     });
   }
 
-  login() {
-    if (this.loginForm.invalid) return;
 
-    this.http.post<any>(`${environment.apiUrl}/auth/login`, this.loginForm.value)
-      .subscribe({
-        next: (res) => {
-          // Guardar token y usuario en localStorage
-          localStorage.setItem('token', res.token);
-          localStorage.setItem('user', JSON.stringify(res.user));
+login() {
+  if (this.loginForm.invalid) return;
 
-          // Mostrar mensaje de éxito
-          this.snackBar.open('Login exitoso', 'Cerrar', { duration: 3000 });
+  this.http.post<any>(`${environment.apiUrl}/auth/login`, this.loginForm.value)
+    .subscribe({
+      next: (res) => {
+        // Guardar token y usuario
+        localStorage.setItem('token', res.token);
+        localStorage.setItem('user', JSON.stringify(res.user));
 
-          // Redirigir al dashboard
-          window.location.href = '/dashboard-organizer';
-        },
-        error: (err) => {
-          this.message = err.error?.message || 'Error al iniciar sesión';
-          this.snackBar.open(this.message, 'Cerrar', { duration: 3000 });
+        this.snackBar.open('Login exitoso', 'Cerrar', { duration: 3000 });
+
+        // 🔑 Redirección según rol
+        const role = res.user.role;
+
+        if (role === 'organizer') {
+          window.location.href = '/organizer/dashboard';
         }
-      });
-  }
+
+        else if (role === 'super_admin') {
+          window.location.href = '/superadmin/dashboard';
+        }
+
+        else if (role === 'guest') {
+          window.location.href = '/guest/event';
+
+        }
+
+      },
+      error: (err) => {
+        const message = err.error?.message || 'Error al iniciar sesión';
+        this.snackBar.open(message, 'Cerrar', { duration: 3000 });
+      }
+    });
+}
 }

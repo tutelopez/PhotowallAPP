@@ -8,7 +8,8 @@ interface Event {
   _id: string;
   name: string;
   date: string;
-  // otros campos si quieres
+  coverImage?: string;
+  profileImage?: string;
 }
 
 interface User {
@@ -25,36 +26,46 @@ interface User {
   templateUrl: './dashboard-organizer.component.html'
 })
 export class DashboardOrganizerComponent implements OnInit {
+
   user: User | null = null;
   events: Event[] = [];
 
-  constructor(private http: HttpClient, private router: Router) {}
+  defaultCover = 'https://res.cloudinary.com/demo/image/upload/v1690000000/event-cover-default.jpg';
+  defaultProfile = 'https://res.cloudinary.com/demo/image/upload/v1690000000/event-profile-default.png';
+
+  constructor(
+    private http: HttpClient,
+    private router: Router
+  ) {}
 
   ngOnInit(): void {
     const storedUser = localStorage.getItem('user');
+
     if (storedUser) {
       this.user = JSON.parse(storedUser);
       this.loadEvents();
     } else {
-      // si no hay usuario, redirigir al login
       this.router.navigate(['/organizer/login']);
     }
   }
 
   loadEvents() {
     if (!this.user) return;
-    this.http.get<Event[]>(`${environment.apiUrl}/events/organizer/${this.user._id}`)
-      .subscribe({
-        next: (res) => this.events = res,
-        error: (err) => console.error('Error cargando eventos', err)
-      });
-  }
 
-  createEvent() {
-    this.router.navigate(['/organizer/create-event']);
+    this.http.get<Event[]>(
+      `${environment.apiUrl}/events/organizer/${this.user._id}`
+    ).subscribe({
+      next: (res) => this.events = res,
+      error: (err) => console.error('Error cargando eventos', err)
+    });
   }
 
   manageEvent(eventId: string) {
-    this.router.navigate([`/organizer/event/${eventId}`]);
+  this.router.navigate(['/organizer/events', eventId, 'manage']);
+}
+
+
+  createEvent() {
+    this.router.navigate(['/organizer/create-event']);
   }
 }
