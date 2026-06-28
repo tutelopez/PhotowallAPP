@@ -1,9 +1,10 @@
+import { Photo } from '@shared/models/Photo.model';
 import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { PhotosService } from '../../core/services/photos';
 import { EventsService } from '../../core/services/events';
-import { Photo, PwEvent } from '../../shared/models';
+import { PhotoWallEvent } from '../../shared/models/Event.model';
 
 @Component({
   selector: 'app-projection',
@@ -26,14 +27,14 @@ import { Photo, PwEvent } from '../../shared/models';
       <div class="proj-grid" [class.has-featured]="featuredPhoto()">
         @if (featuredPhoto()) {
           <div class="proj-featured">
-            <img [src]="featuredPhoto()!.url" [alt]="'Foto de ' + featuredPhoto()!.guestName">
-            <div class="proj-photo-meta">📸 {{ featuredPhoto()!.guestName }}</div>
+            <img [src]="featuredPhoto()!.imageUrl" [alt]="'Foto de ' + featuredPhoto()!.uploadedBy">
+            <div class="proj-photo-meta">📸 {{ featuredPhoto()!.uploadedBy }}</div>
           </div>
         }
         @for (photo of otherPhotos(); track photo._id) {
           <div class="proj-thumb" (click)="setFeatured(photo)">
-            <img [src]="photo.url" [alt]="photo.guestName">
-            <div class="thumb-author">{{ photo.guestName }}</div>
+            <img [src]="photo.imageUrl" [alt]="photo.uploadedBy">
+            <div class="thumb-author">{{ photo.uploadedBy }}</div>
           </div>
         }
       </div>
@@ -117,7 +118,7 @@ export class ProjectionComponent implements OnInit, OnDestroy {
   private photosService = inject(PhotosService);
   private eventsService = inject(EventsService);
 
-  event         = signal<PwEvent | null>(null);
+  event         = signal<PhotoWallEvent | null>(null);
   photos        = signal<Photo[]>([]);
   featuredPhoto = signal<Photo | null>(null);
 

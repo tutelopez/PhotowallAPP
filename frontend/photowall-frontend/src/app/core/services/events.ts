@@ -1,7 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../environments/environment';
-import { CreateEventPayload, PwEvent } from '@shared/models';
+import { PhotoWallEvent,
+  CreateEventDto } from '../../shared/models/Event.model';
 
 @Injectable({ providedIn: 'root' })
 export class EventsService {
@@ -9,23 +10,23 @@ export class EventsService {
   private base = `${environment.apiUrl}/events`;
 
   getMyEvents() {
-    return this.http.get<PwEvent[]>(`${this.base}/mine`);
+    return this.http.get<Event[]>(`${this.base}/mine`);
   }
 
   getEventById(id: string) {
-    return this.http.get<PwEvent>(`${this.base}/${id}`);
+    return this.http.get<Event>(`${this.base}/${id}`);
   }
 
   getEventBySlug(slug: string) {
-    return this.http.get<PwEvent>(`${this.base}/slug/${slug}`);
+    return this.http.get<Event>(`${this.base}/slug/${slug}`);
   }
 
-  createEvent(payload: CreateEventPayload) {
-    return this.http.post<PwEvent>(this.base, payload);
+  createEvent(payload: CreateEventDto) {
+    return this.http.post<Event>(this.base, payload);
   }
 
-  updateEvent(id: string, payload: Partial<CreateEventPayload>) {
-    return this.http.patch<PwEvent>(`${this.base}/${id}`, payload);
+  updateEvent(id: string, payload: Partial<CreateEventDto>) {
+    return this.http.patch<Event>(`${this.base}/${id}`, payload);
   }
 
   deleteEvent(id: string) {
@@ -33,6 +34,6 @@ export class EventsService {
   }
 
   toggleActive(id: string, isActive: boolean) {
-    return this.http.patch<PwEvent>(`${this.base}/${id}/status`, { isActive });
+    return this.http.patch<Event>(`${this.base}/${id}/status`, { isActive });
   }
 }

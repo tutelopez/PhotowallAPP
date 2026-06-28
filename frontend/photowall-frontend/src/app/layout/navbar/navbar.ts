@@ -1,7 +1,7 @@
 import { Component, inject, HostListener, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { AuthService } from '../../core/services/auth';
+import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-navbar',
@@ -17,7 +17,7 @@ import { AuthService } from '../../core/services/auth';
         </a>
 
         <!-- Desktop links -->
-        <div class="pw-nav__links" *ngIf="!auth.isLoggedIn()">
+         <div class="pw-nav__links" *ngIf="!auth.isAuthenticated()">
           <a routerLink="/" fragment="como-funciona">Cómo funciona</a>
           <a routerLink="/" fragment="funciones">Funciones</a>
           <a routerLink="/login" class="btn-ghost-sm">Iniciar sesión</a>
@@ -25,7 +25,7 @@ import { AuthService } from '../../core/services/auth';
         </div>
 
         <!-- Authenticated links -->
-        <div class="pw-nav__links" *ngIf="auth.isLoggedIn()">
+         <div class="pw-nav__links" *ngIf="auth.isAuthenticated()">
           <a routerLink="/dashboard" routerLinkActive="active">Mis eventos</a>
           <a routerLink="/events/new" class="btn-primary-sm">+ Nuevo evento</a>
           <button class="btn-ghost-sm" (click)="auth.logout()">Salir</button>

@@ -5,7 +5,8 @@ import { CommonModule } from '@angular/common';
 import { GuestService } from '../../core/services/guest';
 import { PhotosService } from '../../core/services/photos';
 import { EventsService } from '../../core/services/events';
-import { PwEvent, Photo } from '../../shared/models';
+import { PhotoWallEvent } from '../../shared/models/Event.model';
+import { Photo } from '../../shared/models/Photo.model';
 
 @Component({
   selector: 'app-gallery',
@@ -59,9 +60,9 @@ import { PwEvent, Photo } from '../../shared/models';
         <div class="photo-grid">
           @for (photo of photos(); track photo._id) {
             <div class="grid-photo">
-              <img [src]="photo.url" [alt]="'Foto de ' + photo.guestName">
+              <img [src]="photo.uploadedBy" [alt]="'Foto de ' + photo.uploadedBy">
               <div class="photo-overlay">
-                <span class="photo-guest-name">{{ photo.guestName }}</span>
+                <span class="photo-guest-name">{{ photo.uploadedBy }}</span>
               </div>
             </div>
           }
@@ -151,7 +152,7 @@ export class GalleryComponent implements OnInit, OnDestroy {
   private fb            = inject(FormBuilder);
 
   slug    = signal('');
-  event   = signal<PwEvent | null>(null);
+  event = signal<PhotoWallEvent | null>(null);
   photos  = signal<Photo[]>([]);
   loading = signal(true);
   joiningLoading = signal(false);
@@ -201,11 +202,7 @@ export class GalleryComponent implements OnInit, OnDestroy {
 
   onFileSelected(event: Event) {
     const input = event.target as HTMLInputElement;
-    const files = Array.from(input.files ?? []);
-    files.forEach(file => {
-      this.photosService.uploadPhoto(this.slug(), file).subscribe();
-    });
-  }
+}
 
   private loadPhotos() {
     this.photosService.getPhotosByEvent(this.slug()).subscribe({

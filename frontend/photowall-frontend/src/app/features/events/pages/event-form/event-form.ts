@@ -3,7 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { EventsService } from '../../../../core/services/events';
-import { EventType } from '../../../../shared/models';
+import { EventType } from '../../../../shared/enums/event-type.enum';
 
 @Component({
   selector: 'app-event-form',
@@ -99,22 +99,43 @@ export class EventFormComponent {
   loading = signal(false);
   error   = signal('');
 
-  eventTypes: { value: EventType; label: string }[] = [
-    { value: 'wedding',    label: '💍 Boda' },
-    { value: 'birthday',   label: '🎂 Cumpleaños' },
-    { value: 'anniversary',label: '🎉 Aniversario' },
-    { value: 'corporate',  label: '💼 Evento corporativo' },
-    { value: 'graduation', label: '🎓 Graduación' },
-    { value: 'party',      label: '🎊 Fiesta' },
-    { value: 'other',      label: '✨ Otro' },
-  ];
+ eventTypes: { value: EventType; label: string }[] = [
+  {
+    value: EventType.BODA,
+    label: '💍 Boda'
+  },
+  {
+    value: EventType.CUMPLEANOS,
+    label: '🎂 Cumpleaños'
+  },
+  {
+    value: EventType.ANIVERSARIO,
+    label: '🎉 Aniversario'
+  },
+  {
+    value: EventType.EMPRESARIAL,
+    label: '💼 Evento empresarial'
+  },
+  {
+    value: EventType.BABYSHOWER,
+    label: '🍼 Baby Shower'
+  },
+  {
+    value: EventType.BAUTIZO,
+    label: '✝️ Bautizo'
+  },
+  {
+    value: EventType.OTRO,
+    label: '✨ Otro'
+  }
+];
 
   form = this.fb.nonNullable.group({
-    name:        ['', Validators.required],
-    date:        ['', Validators.required],
-    type:        ['' as EventType, Validators.required],
-    description: [''],
-  });
+  name: ['', Validators.required],
+  date: ['', Validators.required],
+  type: [EventType.BODA, Validators.required],
+  description: [''],
+});
 
   submit() {
     if (this.form.invalid) return;

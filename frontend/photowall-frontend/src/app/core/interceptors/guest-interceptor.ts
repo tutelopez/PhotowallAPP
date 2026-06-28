@@ -9,7 +9,7 @@ export const guestInterceptor: HttpInterceptorFn = (req, next) => {
   const slugMatch = req.url.match(/\/event\/([^/?]+)/);
   if (slugMatch) {
     const slug = slugMatch[1];
-    const token = guestService.getTokenForSlug(slug);
+    const token = guestService.getTokenForEvent(slug);
     if (token) {
       const cloned = req.clone({
         setHeaders: { 'x-guest-token': token }

@@ -1,7 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { AuthService } from '../../../../core/services/auth';
+import { AuthService } from '../../../../core/services/auth.service';
 
 @Component({
   selector: 'app-register',
@@ -108,16 +108,27 @@ export class RegisterComponent {
   });
 
   submit() {
-    if (this.form.invalid) return;
-    this.loading.set(true);
-    this.error.set('');
 
-    this.auth.register(this.form.getRawValue()).subscribe({
-      next: () => this.router.navigate(['/dashboard']),
-      error: (err) => {
-        this.error.set(err.error?.message ?? 'Error al crear la cuenta');
-        this.loading.set(false);
-      }
-    });
+  if (this.form.invalid) return;
+
+  this.loading.set(true);
+  this.error.set('');
+
+  try {
+
+    this.auth.register(this.form.getRawValue());
+
+    this.router.navigate(['/dashboard']);
+
+  } catch (err: unknown) {
+
+    this.error.set('Error al crear la cuenta');
+
+  } finally {
+
+    this.loading.set(false);
+
   }
+
+}
 }

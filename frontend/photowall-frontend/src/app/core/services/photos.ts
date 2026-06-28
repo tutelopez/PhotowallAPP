@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpEvent, HttpRequest, HttpParams } from '@angular/common/http';
 import { environment } from '../../../../environments/environment';
-import { Photo } from '@shared/models';
+import { Photo } from '../../shared/models/Photo.model';
 
 @Injectable({ providedIn: 'root' })
 export class PhotosService {

@@ -1,9 +1,9 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { AuthService } from '../../../../core/services/auth';
+import { AuthService } from '../../../../core/services/auth.service';
 import { EventsService } from '../../../../core/services/events';
-import { PwEvent } from '../../../../shared/models/';
+import { PhotoWallEvent as Event } from '../../../../shared/models/Event.model';
 
 @Component({
   selector: 'app-dashboard',
@@ -15,7 +15,7 @@ import { PwEvent } from '../../../../shared/models/';
         <div class="dash-header">
           <div>
             <h1 class="dash-title">Mis eventos</h1>
-            <p class="dash-sub">Hola, {{ auth.currentUser()?.name }} 👋</p>
+            <p class="dash-sub">Hola, {{ auth.getCurrentUser()?.name }} 👋</p>
           </div>
           <a routerLink="/events/new" class="btn-pw-primary">+ Nuevo evento</a>
         </div>
@@ -116,7 +116,7 @@ export class DashboardComponent implements OnInit {
   auth   = inject(AuthService);
   private eventsService = inject(EventsService);
 
-  events  = signal<PwEvent[]>([]);
+  events  = signal<Event[]>([]);
   loading = signal(true);
 
   ngOnInit() {

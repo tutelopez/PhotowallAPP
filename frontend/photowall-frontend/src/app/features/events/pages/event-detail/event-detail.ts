@@ -3,7 +3,9 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { EventsService } from '../../../../core/services/events';
 import { PhotosService } from '../../../../core/services/photos';
-import { PwEvent, Photo } from '../../../../shared/models';
+import {  Photo } from '../../../../shared/models/Photo.model';
+import { PhotoWallEvent } from '../../../../shared/models/Event.model';
+
 
 @Component({
   selector: 'app-event-detail',
@@ -43,10 +45,10 @@ import { PwEvent, Photo } from '../../../../shared/models';
               <h3>Código QR del evento</h3>
               <p>Comparte este QR con tus invitados para que puedan subir fotos</p>
               <div class="qr-placeholder">
-                <img [src]="event()!.qrUrl" alt="QR del evento"
+                <img [src]="event()!.qrCode" alt="QR del evento"
                      onerror="this.src='https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=test'">
               </div>
-              <a [href]="event()!.qrUrl" download="qr-{{ event()!.slug }}.png"
+              <a [href]="event()!.qrCode" download="qr-{{ event()!.slug }}.png"
                  class="btn-pw-ghost btn-sm">
                 <i class="bi bi-download"></i> Descargar QR
               </a>
@@ -88,9 +90,10 @@ import { PwEvent, Photo } from '../../../../shared/models';
               <div class="admin-photo-grid">
                 @for (photo of photos(); track photo._id) {
                   <div class="admin-photo">
-                    <img [src]="photo.url" [alt]="photo.guestName">
+
+                    <img [src]="photo.imageUrl" [alt]="photo.uploadedBy">
                     <div class="admin-photo-overlay">
-                      <span>{{ photo.guestName }}</span>
+                      <span>{{ photo.uploadedBy }}</span>
                       <button (click)="deletePhoto(photo._id)" class="delete-btn">
                         <i class="bi bi-trash"></i>
                       </button>
@@ -191,8 +194,7 @@ export class EventDetailComponent implements OnInit {
   private route   = inject(ActivatedRoute);
   private evSvc   = inject(EventsService);
   private photoSvc = inject(PhotosService);
-
-  event   = signal<PwEvent | null>(null);
+  event = signal<PhotoWallEvent | null>(null);
   photos  = signal<Photo[]>([]);
   loading = signal(true);
   copied  = signal(false);
