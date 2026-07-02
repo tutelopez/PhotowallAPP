@@ -19,25 +19,29 @@ export class GuestService {
 
 
 
- join(eventId: string, payload: JoinEventDto) {
+join(
+  eventId: string,
+  eventSlug: string,
+  payload: JoinEventDto
+) {
   return this.http
-    .post<{ guest: Guest; token: string }>(
+    .post<{ guestId: string; name: string; token: string }>(
       `${this.base}/join/${eventId}`,
       payload
     )
     .pipe(
-      tap(({ guest, token }) => {
+      tap((response) => {
 
         const session: GuestSession = {
-          guestId: guest._id,
-          guestName: guest.name,
-          eventId: guest.event,
-          token
+          guestId: response.guestId,
+          guestName: response.name,
+          eventId,
+          token: response.token
         };
 
         const sessions = {
           ...this._sessions(),
-          [eventId]: session
+          [eventSlug]: session
         };
 
         this._sessions.set(sessions);
@@ -73,6 +77,27 @@ hasSession(eventId: string): boolean {
 
 getTokenForEvent(eventId: string): string | null {
   return this._sessions()[eventId]?.token ?? null;
+}
+
+getGuestId(eventId: string): string | null {
+  return this._sessions()[eventId]?.guestId ?? null;
+}
+
+getGuestName(eventId: string): string | null {
+  return this._sessions()[eventId]?.guestName ?? null;
+}
+
+clearSession(eventId: string) {
+  const sessions = { ...this._sessions() };
+
+  delete sessions[eventId];
+
+  this._sessions.set(sessions);
+
+  localStorage.setItem(
+    GUEST_SESSION_KEY,
+    JSON.stringify(sessions)
+  );
 }
 
 }

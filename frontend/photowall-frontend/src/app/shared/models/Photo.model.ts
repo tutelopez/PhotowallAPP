@@ -13,7 +13,7 @@ export interface Photo {
 
   updatedAt: string;
 }
-
+ 
 /**
  * DTO para subir una foto.
  * Se convertirá a FormData en PhotosService.

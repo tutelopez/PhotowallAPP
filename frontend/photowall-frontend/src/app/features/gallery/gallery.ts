@@ -60,7 +60,8 @@ import { Photo } from '../../shared/models/Photo.model';
         <div class="photo-grid">
           @for (photo of photos(); track photo._id) {
             <div class="grid-photo">
-              <img [src]="photo.uploadedBy" [alt]="'Foto de ' + photo.uploadedBy">
+              <img [src]="photo.imageUrl"
+              [alt]="'Foto de ' + photo.uploadedBy">
               <div class="photo-overlay">
                 <span class="photo-guest-name">{{ photo.uploadedBy }}</span>
               </div>
@@ -186,29 +187,73 @@ export class GalleryComponent implements OnInit, OnDestroy {
   }
 
   join() {
-    if (this.joinForm.invalid) return;
-    this.joiningLoading.set(true);
 
-    this.guestService.join(this.slug(), this.joinForm.getRawValue()).subscribe({
-      next: () => {
+  if (this.joinForm.invalid) return;
+
+  const event = this.event();
+
+  if (!event) return;
+
+  this.joiningLoading.set(true);
+
+  this.guestService.join(
+    event._id,
+    this.joinForm.getRawValue()
+)
+.subscribe({
+    next: () => {
         this.hasSession.set(true);
         this.joiningLoading.set(false);
         this.loadPhotos();
         this.startPolling();
-      },
-      error: () => this.joiningLoading.set(false)
-    });
-  }
+    },
+    error: (err) => {
+        console.error(err);
+        this.joiningLoading.set(false);
+    }
+});
 
-  onFileSelected(event: Event) {
-    const input = event.target as HTMLInputElement;
 }
 
-  private loadPhotos() {
-    this.photosService.getPhotosByEvent(this.slug()).subscribe({
-      next: (photos) => this.photos.set(photos)
+onFileSelected(event: globalThis.Event) {
+
+  const input = event.target as HTMLInputElement;
+
+  if (!input.files?.length) return;
+
+  const session = this.guestService.getSession(this.slug());
+
+  if (!session) return;
+
+  Array.from(input.files).forEach(file => {
+
+    this.photosService
+      .uploadPhoto(
+        session.eventId,
+        session.guestId,
+        file
+      )
+      .subscribe({
+        next: () => this.loadPhotos()
+      });
+
+  });
+
+}
+
+private loadPhotos() {
+
+  if (!this.event()) return;
+
+  this.photosService
+    .getPhotosByEvent(this.event()!._id)
+    .subscribe({
+      next: (response) => {
+        this.photos.set(response.photos);
+      }
     });
-  }
+
+}
 
   private startPolling() {
     // Poll every 5 seconds for new photos (WebSockets coming soon)

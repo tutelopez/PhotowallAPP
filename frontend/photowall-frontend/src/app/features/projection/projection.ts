@@ -145,12 +145,12 @@ export class ProjectionComponent implements OnInit, OnDestroy {
     this.featuredPhoto.set(photo);
   }
 
-  private loadPhotos(slug: string) {
+ private loadPhotos(slug: string) {
     this.photosService.getPhotosByEvent(slug).subscribe(photos => {
-      this.photos.set(photos);
-      if (!this.featuredPhoto() && photos.length > 0) {
-        this.featuredPhoto.set(photos[0]);
-      }
+     // this.photos.set(photos);
+    //  if (!this.featuredPhoto() && photos.length > 0) {
+    //    this.featuredPhoto.set(photos[0]);
+   //   }
     });
   }
 }

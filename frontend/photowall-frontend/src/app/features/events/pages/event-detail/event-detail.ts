@@ -202,16 +202,26 @@ export class EventDetailComponent implements OnInit {
   guestUrl = () => `${window.location.origin}/e/${this.event()?.slug}`;
 
   ngOnInit() {
-    const id = this.route.snapshot.paramMap.get('id') ?? '';
-    this.evSvc.getEventById(id).subscribe({
-      next: (ev) => {
-        this.event.set(ev);
-        this.loading.set(false);
-        this.photoSvc.getPhotosByEvent(ev.slug).subscribe(p => this.photos.set(p));
-      },
-      error: () => this.loading.set(false)
-    });
-  }
+  const id = this.route.snapshot.paramMap.get('id') ?? '';
+
+  this.evSvc.getEventById(id).subscribe({
+    next: (ev) => {
+
+      this.event.set(ev);
+      this.loading.set(false);
+
+      this.photoSvc
+        .getPhotosByEvent(ev._id)
+        .subscribe({
+          next: (response) => {
+            this.photos.set(response.photos);
+          }
+        });
+
+    },
+    error: () => this.loading.set(false)
+  });
+}
 
   copyLink() {
     navigator.clipboard.writeText(this.guestUrl()).then(() => {
