@@ -1,58 +1,39 @@
-import { EventType } from '../enums/event-type.enum';
+import { PhotoWallEventType } from "../enums/event-type.enum";
 
 export interface PhotoWallEvent {
+
   _id: string;
 
   name: string;
 
-  date: string;
-
-  type: EventType;
+  description?: string;
 
   slug: string;
+
+  date: string;
+
+  type: PhotoWallEventType;
 
   qrCode: string;
 
   isActive: boolean;
 
-  coverImage: string;
-
-  profileImage: string;
-
-  organizer: string;
+  photoCount: number;
 
   createdAt: string;
 
   updatedAt: string;
 
-  photoCount?: number; // ← opcional
-
 }
 
-/**
- * DTO para crear un evento.
- * Equivale al body del POST /events
- */
 export interface CreateEventDto {
+
   name: string;
+
+  description?: string;
+
   date: string;
-  type: EventType;
 
-  coverImage?: File;
-  profileImage?: File;
-}
+  type: PhotoWallEventType;
 
-/**
- * DTO para actualizar un evento.
- * Equivale al body del PUT /events/:eventId
- */
-export interface UpdateEventDto {
-  name?: string;
-  date?: string;
-  type?: EventType;
-
-  coverImage?: File;
-  profileImage?: File;
-
-  isActive?: boolean;
 }

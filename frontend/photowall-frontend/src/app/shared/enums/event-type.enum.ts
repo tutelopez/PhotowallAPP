@@ -1,4 +1,4 @@
-export enum EventType {
+export enum PhotoWallEventType {
   BODA = 'boda',
   CUMPLEANOS = 'cumpleaños',
   ANIVERSARIO = 'aniversario',

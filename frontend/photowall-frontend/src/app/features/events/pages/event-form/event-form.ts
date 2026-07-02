@@ -3,7 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { EventsService } from '../../../../core/services/events';
-import { EventType } from '../../../../shared/enums/event-type.enum';
+import { PhotoWallEventType } from '../../../../shared/enums/event-type.enum';
 
 @Component({
   selector: 'app-event-form',
@@ -99,33 +99,33 @@ export class EventFormComponent {
   loading = signal(false);
   error   = signal('');
 
- eventTypes: { value: EventType; label: string }[] = [
+ eventTypes: { value: PhotoWallEventType; label: string }[] = [
   {
-    value: EventType.BODA,
+    value: PhotoWallEventType.BODA,
     label: '💍 Boda'
   },
   {
-    value: EventType.CUMPLEANOS,
+    value: PhotoWallEventType.CUMPLEANOS,
     label: '🎂 Cumpleaños'
   },
   {
-    value: EventType.ANIVERSARIO,
+    value: PhotoWallEventType.ANIVERSARIO,
     label: '🎉 Aniversario'
   },
   {
-    value: EventType.EMPRESARIAL,
+    value: PhotoWallEventType.EMPRESARIAL,
     label: '💼 Evento empresarial'
   },
   {
-    value: EventType.BABYSHOWER,
+    value: PhotoWallEventType.BABYSHOWER,
     label: '🍼 Baby Shower'
   },
   {
-    value: EventType.BAUTIZO,
+    value: PhotoWallEventType.BAUTIZO,
     label: '✝️ Bautizo'
   },
   {
-    value: EventType.OTRO,
+    value: PhotoWallEventType.OTRO,
     label: '✨ Otro'
   }
 ];
@@ -133,7 +133,7 @@ export class EventFormComponent {
   form = this.fb.nonNullable.group({
   name: ['', Validators.required],
   date: ['', Validators.required],
-  type: [EventType.BODA, Validators.required],
+  type: [PhotoWallEventType.OTRO as PhotoWallEventType, Validators.required],
   description: [''],
 });
 
