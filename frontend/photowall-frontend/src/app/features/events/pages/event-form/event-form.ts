@@ -43,6 +43,24 @@ import { PhotoWallEventType } from '../../../../shared/enums/event-type.enum';
           </div>
 
           <div class="field">
+  <label>Imagen de portada</label>
+
+  <input
+    type="file"
+    accept="image/*"
+    (change)="onCoverSelected($event)">
+</div>
+
+<div class="field">
+  <label>Imagen de perfil</label>
+
+  <input
+    type="file"
+    accept="image/*"
+    (change)="onProfileSelected($event)">
+</div>
+
+          <div class="field">
             <label>Descripción <span class="optional">(opcional)</span></label>
             <textarea formControlName="description"
                       placeholder="Una breve descripción del evento..." rows="3">
@@ -95,6 +113,8 @@ export class EventFormComponent {
   private fb     = inject(FormBuilder);
   private events = inject(EventsService);
   private router = inject(Router);
+  coverImage?: File;
+  profileImage?: File;
 
   loading = signal(false);
   error   = signal('');
@@ -142,12 +162,50 @@ export class EventFormComponent {
     this.loading.set(true);
     this.error.set('');
 
-    this.events.createEvent(this.form.getRawValue()).subscribe({
-      next: (ev) => this.router.navigate(['/events', ev._id]),
+    const dto = {
+
+  ...this.form.getRawValue(),
+
+  coverImage: this.coverImage,
+
+  profileImage: this.profileImage
+
+};
+
+    this.events.createEvent(dto).subscribe({
+    next: (response) => {
+
+  this.router.navigate([
+    '/events',
+    response.event._id
+  ]);
+
+},
       error: (err) => {
         this.error.set(err.error?.message ?? 'Error al crear el evento');
         this.loading.set(false);
       }
     });
   }
+
+onCoverSelected(event: Event) {
+
+  const input = event.target as HTMLInputElement;
+
+  if (!input.files?.length) return;
+
+  this.coverImage = input.files[0];
+
+}
+
+onProfileSelected(event: Event) {
+
+  const input = event.target as HTMLInputElement;
+
+  if (!input.files?.length) return;
+
+  this.profileImage = input.files[0];
+
+}
+
 }

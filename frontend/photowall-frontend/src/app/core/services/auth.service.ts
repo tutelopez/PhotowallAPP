@@ -1,16 +1,17 @@
 import { Injectable, inject } from '@angular/core';
-
 import { User } from '../../shared/models/User.model';
 import { LoginDto } from '../../shared/dto/auth/login.dto';
 import { RegisterDto } from '../../shared/dto/auth/register.dto';
 import { AuthResult } from '../../shared/dto/auth/auth-result.dto';
-
 import { UserRole } from '../../shared/enums/user-role.enum';
-
-import { USERS_MOCK } from '../mocks/user.mock';
 import { LocalStorageService } from '../storage/local-storage.service';
 import { STORAGE_KEYS } from '../constants/storage-keys';
 import { AuthState } from '@core/state/auth.state';
+import { map } from 'rxjs/operators';
+import { HttpClient } from '@angular/common/http';
+import { Observable, tap } from 'rxjs';
+import { environment } from '../../../../environments/environment';
+
 
 @Injectable({
   providedIn: 'root',
@@ -19,56 +20,63 @@ export class AuthService {
 
   private readonly storage = inject(LocalStorageService);
 
-private readonly authState = inject(AuthState);
+  private readonly authState = inject(AuthState);
+
+  private http = inject(HttpClient);
+
+  private base = `${environment.apiUrl}/auth`;
 
 
   constructor() {
-    this.restoreSession();
+
   }
 
-  login(dto: LoginDto): AuthResult {
+ login(dto: LoginDto): Observable<AuthResult> {
 
-  const user = USERS_MOCK.find(
-    u =>
-      u.email === dto.email &&
-      u.password === dto.password
+  return this.http.post<any>(
+    `${this.base}/login`,
+    dto
+  ).pipe(
+
+    tap(res => {
+
+      this.authState.setUser(res.user);
+
+      this.storage.set(STORAGE_KEYS.USER, res.user);
+
+      this.storage.set(STORAGE_KEYS.TOKEN, res.token);
+
+    }),
+
+    map(res => ({
+
+      success: true,
+
+      message: res.message,
+
+      user: res.user
+
+    }))
+
   );
 
-  if (!user) {
-    return {
-      success: false,
-      message: 'Correo o contraseña incorrectos.'
-    };
-  }
-
-  this.authState.setUser(user);
-
-  this.storage.set(STORAGE_KEYS.USER, user);
-  this.storage.set(STORAGE_KEYS.TOKEN, 'mock-token');
-
-  return {
-    success: true,
-    message: 'Inicio de sesión exitoso.',
-    user
-  };
 }
 
-  register(dto: RegisterDto): User {
+register(dto: RegisterDto) {
 
-    const newUser: User = {
-      _id: crypto.randomUUID(),
-      name: dto.name,
-      email: dto.email,
-      password: dto.password,
-      role: UserRole.ORGANIZER,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
+  return this.http.post<any>(
+    `${this.base}/register`,
+    {
 
-    USERS_MOCK.push(newUser);
+      ...dto,
 
-    return newUser;
-  }
+      role: UserRole.ORGANIZER
+
+    }
+
+  );
+
+}
 
   logout(): void {
 
@@ -79,15 +87,7 @@ private readonly authState = inject(AuthState);
 
   }
 
-  private restoreSession(): void {
 
-    const user = this.storage.get<User>(STORAGE_KEYS.USER);
-
-    if (user) {
-    this.authState.setUser(user);
-    }
-
-  }
 getCurrentUser(): User | null {
   return this.authState.currentUser();
 }

@@ -91,3 +91,5 @@ export const getPhotosByEvent = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Error obteniendo fotos del evento' });
   }
 };
+
+

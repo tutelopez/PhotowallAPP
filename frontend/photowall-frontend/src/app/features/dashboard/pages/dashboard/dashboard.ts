@@ -119,10 +119,25 @@ export class DashboardComponent implements OnInit {
   events  = signal<Event[]>([]);
   loading = signal(true);
 
-  ngOnInit() {
-    this.eventsService.getMyEvents().subscribe({
-      next: (ev) => { this.events.set(ev); this.loading.set(false); },
-      error: ()  => { this.loading.set(false); }
-    });
-  }
+ ngOnInit() {
+
+  this.eventsService.getMyEvents().subscribe({
+
+    next: (events) => {
+
+      this.events.set(events);
+      this.loading.set(false);
+
+    },
+
+    error: (err) => {
+
+      console.error(err);
+      this.loading.set(false);
+
+    }
+
+  });
+
+}
 }

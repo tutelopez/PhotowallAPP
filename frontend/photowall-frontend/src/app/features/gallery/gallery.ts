@@ -195,23 +195,24 @@ export class GalleryComponent implements OnInit, OnDestroy {
   if (!event) return;
 
   this.joiningLoading.set(true);
-
-  this.guestService.join(
+this.guestService
+  .join(
     event._id,
+    this.slug(),
     this.joinForm.getRawValue()
-)
-.subscribe({
+  )
+  .subscribe({
     next: () => {
-        this.hasSession.set(true);
-        this.joiningLoading.set(false);
-        this.loadPhotos();
-        this.startPolling();
+      this.hasSession.set(true);
+      this.joiningLoading.set(false);
+      this.loadPhotos();
+      this.startPolling();
     },
     error: (err) => {
-        console.error(err);
-        this.joiningLoading.set(false);
+      console.error(err);
+      this.joiningLoading.set(false);
     }
-});
+  });
 
 }
 
@@ -248,13 +249,12 @@ private loadPhotos() {
   this.photosService
     .getPhotosByEvent(this.event()!._id)
     .subscribe({
-      next: (response) => {
-        this.photos.set(response.photos);
+      next: (photos) => {
+        this.photos.set(photos);
       }
     });
 
 }
-
   private startPolling() {
     // Poll every 5 seconds for new photos (WebSockets coming soon)
     this.pollInterval = setInterval(() => this.loadPhotos(), 5000);

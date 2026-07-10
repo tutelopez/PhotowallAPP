@@ -107,28 +107,42 @@ export class RegisterComponent {
     password: ['', [Validators.required, Validators.minLength(6)]],
   });
 
-  submit() {
+submit() {
 
   if (this.form.invalid) return;
 
   this.loading.set(true);
+
   this.error.set('');
 
-  try {
+  this.auth.register(this.form.getRawValue())
+    .subscribe({
 
-    this.auth.register(this.form.getRawValue());
+      next: () => {
 
-    this.router.navigate(['/dashboard']);
+        this.router.navigate(['/login']);
 
-  } catch (err: unknown) {
+      },
 
-    this.error.set('Error al crear la cuenta');
+      error: err => {
 
-  } finally {
+        this.error.set(
+          err.error?.message ??
+          'No fue posible crear la cuenta'
+        );
 
-    this.loading.set(false);
+        this.loading.set(false);
 
-  }
+      },
+
+      complete: () => {
+
+        this.loading.set(false);
+
+      }
+
+    });
 
 }
+
 }

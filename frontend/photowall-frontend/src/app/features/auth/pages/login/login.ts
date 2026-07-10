@@ -114,28 +114,41 @@ export class LoginComponent {
     password: ['', Validators.required],
   });
 
-  submit(): void {
+submit() {
 
-  if (this.form.invalid) {
-    return;
-  }
+  if (this.form.invalid) return;
 
   this.loading.set(true);
+
   this.error.set('');
 
-  const result = this.auth.login(this.form.getRawValue());
+  this.auth.login(this.form.getRawValue())
+    .subscribe({
 
-  if (result.success) {
+      next: () => {
 
-    this.router.navigate(['/dashboard']);
+        this.router.navigate(['/dashboard']);
 
-  } else {
+      },
 
-    this.error.set(result.message);
+      error: err => {
 
-  }
+        this.error.set(
+          err.error?.message ??
+          'Error al iniciar sesión'
+        );
 
-  this.loading.set(false);
+        this.loading.set(false);
+
+      },
+
+      complete: () => {
+
+        this.loading.set(false);
+
+      }
+
+    });
 
 }
 }

@@ -17,7 +17,11 @@ router.post(
   controller.create
 );
 
-router.get('/organizer/:organizerId', EventController.getMyEvents);
+router.get(
+  '/my-events',
+  ensureAuth([UserRole.ORGANIZER]),
+  EventController.getMyEvents
+);
 
 // 🔐 SOLO ORGANIZADOR (ANTES del slug)
 router.get(

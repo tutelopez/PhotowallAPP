@@ -73,11 +73,21 @@ export const getBySlug = async (req: Request, res: Response) => {
 };
 
 export const getMyEvents = async (req: Request, res: Response) => {
-  const { organizerId } = req.params;
+  try {
 
-  const events = await EventService.getEventsByOrganizer(organizerId);
+    const organizerId = (req as any).user.userId;
 
-  res.json(events);
+    const events = await EventService.getEventsByOrganizer(organizerId);
+
+    res.json(events);
+
+  } catch (error) {
+
+    res.status(500).json({
+      message: 'Error obteniendo eventos'
+    });
+
+  }
 };
 
 export const getEventDetail = async (req: Request, res: Response) => {

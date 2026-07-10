@@ -2,7 +2,9 @@ import { NextFunction, Request, Response } from 'express';
 import { UserModel, UserRole } from '../models/User.model';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import * as UserService from '../service/User.service';
 
+import { generateToken } from '../utils/jwt';
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecret';
 const SALT_ROUNDS = 10;
 
@@ -12,40 +14,22 @@ const SALT_ROUNDS = 10;
 // ------------------------
 // REGISTRO DE ORGANIZER O GUEST (FORM LOGIN)
 // ------------------------
+
 export const registerUser = async (req: Request, res: Response) => {
-  try {
-    const { name, email, password, role, eventId } = req.body;
 
-    if (!name || !email || !password) {
-      return res.status(400).json({ message: 'name, email y password son obligatorios' });
-    }
+   const user = await UserService.createOrganizer(req.body);
 
-    // Validar rol
-    if (!Object.values(UserRole).includes(role)) {
-      return res.status(400).json({ message: 'Rol inválido' });
-    }
+   const token = generateToken({
+  userId: user._id,
+  role: user.role
+});
 
-    // Check si el usuario ya existe
-    const exists = await UserModel.findOne({ email });
-    if (exists) return res.status(409).json({ message: 'Usuario ya registrado' });
+   res.status(201).json({
+      user,
+      token
+   });
 
-    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
-
-    const newUser = await UserModel.create({
-      name,
-      email,
-      role,
-      password: hashedPassword,
-      event: eventId || undefined
-    });
-
-    res.status(201).json({ message: 'Usuario registrado correctamente', user: newUser });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Error registrando usuario' });
-  }
-};
-
+}
 // ------------------------
 // LOGIN DE ORGANIZER O GUEST (FORM LOGIN)
 // ------------------------
@@ -68,11 +52,10 @@ export const loginUser = async (req: Request, res: Response) => {
     if (!isValid) return res.status(401).json({ message: 'Contraseña incorrecta' });
 
     // Generar JWT
-    const token = jwt.sign(
-      { userId: user._id, role: user.role },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    const token = generateToken({
+  userId: user._id,
+  role: user.role
+});
 
     res.json({ message: 'Login exitoso', token, user });
   } catch (error) {

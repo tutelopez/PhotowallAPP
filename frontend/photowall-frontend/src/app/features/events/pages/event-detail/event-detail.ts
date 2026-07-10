@@ -211,12 +211,8 @@ export class EventDetailComponent implements OnInit {
       this.loading.set(false);
 
       this.photoSvc
-        .getPhotosByEvent(ev._id)
-        .subscribe({
-          next: (response) => {
-            this.photos.set(response.photos);
-          }
-        });
+  .getPhotosByEvent(ev._id)
+  .subscribe(photos => this.photos.set(photos));;
 
     },
     error: () => this.loading.set(false)
