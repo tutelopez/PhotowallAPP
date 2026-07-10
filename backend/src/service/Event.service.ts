@@ -57,7 +57,7 @@ export const createEvent = async (data: any) => {
 
   return await EventModel.create({
     name: data.name,
-    date: data.date,
+    date: data.date, 
     type: data.type,
     slug,
     qrCode,

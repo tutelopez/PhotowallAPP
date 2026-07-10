@@ -199,7 +199,7 @@ export class EventDetailComponent implements OnInit {
   loading = signal(true);
   copied  = signal(false);
 
-  guestUrl = () => `${window.location.origin}/e/${this.event()?.slug}`;
+  guestUrl =  () => `${window.location.origin}/e/${this.event()?.slug}`;
 
   ngOnInit() {
   const id = this.route.snapshot.paramMap.get('id') ?? '';
