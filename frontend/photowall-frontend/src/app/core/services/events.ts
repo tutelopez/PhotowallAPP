@@ -3,6 +3,9 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../environments/environment';
 import { CreateEventDto } from '@shared/dto/event/create-event.dto';
 import { PhotoWallEvent } from '../../shared/models/Event.model';
+import { map } from 'rxjs/operators';
+
+
 @Injectable({
   providedIn: 'root'
 })
@@ -40,10 +43,26 @@ export class EventsService {
     );
   }
   getEventById(id: string) {
-    return this.http.get<PhotoWallEvent>(
-      `${this.base}/${id}/manage`
+  return this.http
+    .get<any>(`${this.base}/${id}/manage`)
+    .pipe(
+      map(res => ({
+        _id: res.event.id,
+        name: res.event.name,
+        slug: res.event.slug,
+        date: res.event.date,
+        type: res.event.type,
+        qrCode: res.event.qrCode,
+        isActive: true,
+        coverImage: res.event.coverImage,
+        profileImage: res.event.profileImage,
+        organizer: res.event.organizer,
+        photoCount: res.photos?.length ?? 0,
+        createdAt: '',
+        updatedAt: ''
+      }))
     );
-  }
+}
  getMyEvents() {
   return this.http.get<PhotoWallEvent[]>(
     `${this.base}/my-events`
