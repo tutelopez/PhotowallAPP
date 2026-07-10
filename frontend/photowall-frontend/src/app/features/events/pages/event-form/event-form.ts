@@ -4,7 +4,6 @@ import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { EventsService } from '../../../../core/services/events';
 import { PhotoWallEventType } from '../../../../shared/enums/event-type.enum';
-
 @Component({
   selector: 'app-event-form',
   standalone: true,
@@ -13,25 +12,20 @@ import { PhotoWallEventType } from '../../../../shared/enums/event-type.enum';
     <div class="form-page">
       <div class="form-inner">
         <a routerLink="/dashboard" class="back-link">← Volver al dashboard</a>
-
         <h1 class="form-title">Crear nuevo evento</h1>
         <p class="form-sub">Completa los datos y obtendrás tu QR al instante</p>
-
         @if (error()) {
           <div class="form-error">{{ error() }}</div>
         }
-
         <form [formGroup]="form" (ngSubmit)="submit()" class="event-form">
           <div class="field">
             <label>Nombre del evento</label>
             <input type="text" formControlName="name" placeholder="Boda de Ana y Luis">
           </div>
-
           <div class="field">
             <label>Fecha</label>
             <input type="date" formControlName="date">
           </div>
-
           <div class="field">
             <label>Tipo de evento</label>
             <select formControlName="type">
@@ -41,32 +35,20 @@ import { PhotoWallEventType } from '../../../../shared/enums/event-type.enum';
               }
             </select>
           </div>
-
           <div class="field">
   <label>Imagen de portada</label>
-
   <input
     type="file"
     accept="image/*"
     (change)="onCoverSelected($event)">
 </div>
-
 <div class="field">
   <label>Imagen de perfil</label>
-
   <input
     type="file"
     accept="image/*"
     (change)="onProfileSelected($event)">
 </div>
-
-          <div class="field">
-            <label>Descripción <span class="optional">(opcional)</span></label>
-            <textarea formControlName="description"
-                      placeholder="Una breve descripción del evento..." rows="3">
-            </textarea>
-          </div>
-
           <div class="form-actions">
             <a routerLink="/dashboard" class="btn-pw-ghost">Cancelar</a>
             <button type="submit" class="btn-pw-primary"
@@ -115,10 +97,8 @@ export class EventFormComponent {
   private router = inject(Router);
   coverImage?: File;
   profileImage?: File;
-
   loading = signal(false);
   error   = signal('');
-
  eventTypes: { value: PhotoWallEventType; label: string }[] = [
   {
     value: PhotoWallEventType.BODA,
@@ -149,37 +129,26 @@ export class EventFormComponent {
     label: '✨ Otro'
   }
 ];
-
   form = this.fb.nonNullable.group({
   name: ['', Validators.required],
   date: ['', Validators.required],
   type: [PhotoWallEventType.OTRO as PhotoWallEventType, Validators.required],
-  description: [''],
 });
-
   submit() {
     if (this.form.invalid) return;
     this.loading.set(true);
     this.error.set('');
-
     const dto = {
-
   ...this.form.getRawValue(),
-
   coverImage: this.coverImage,
-
   profileImage: this.profileImage
-
 };
-
     this.events.createEvent(dto).subscribe({
     next: (response) => {
-
   this.router.navigate([
     '/events',
     response.event._id
   ]);
-
 },
       error: (err) => {
         this.error.set(err.error?.message ?? 'Error al crear el evento');
@@ -187,25 +156,14 @@ export class EventFormComponent {
       }
     });
   }
-
 onCoverSelected(event: Event) {
-
   const input = event.target as HTMLInputElement;
-
   if (!input.files?.length) return;
-
   this.coverImage = input.files[0];
-
 }
-
 onProfileSelected(event: Event) {
-
   const input = event.target as HTMLInputElement;
-
   if (!input.files?.length) return;
-
   this.profileImage = input.files[0];
-
 }
-
 }
