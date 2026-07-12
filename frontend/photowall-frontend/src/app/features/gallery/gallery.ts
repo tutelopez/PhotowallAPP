@@ -24,7 +24,6 @@ import { Photo } from '../../shared/models/Photo.model';
               <p class="join-event-name">{{ event()!.name }}</p>
             }
             <p class="join-desc">Ingresa tu nombre para acceder y subir fotos al álbum compartido</p>
-
             <form [formGroup]="joinForm" (ngSubmit)="join()">
               <input type="text" formControlName="name"
                      placeholder="Tu nombre" class="join-input">
@@ -39,13 +38,34 @@ import { Photo } from '../../shared/models/Photo.model';
 
       <!-- Gallery view -->
       @if (hasSession()) {
-        <div class="gallery-header">
-          <div class="gallery-header__inner">
-            <div>
-              <div class="badge-live">
-                <span class="dot"></span> En vivo
+
+        <!-- Hero: portada + foto de perfil + nombre + fecha -->
+        @if (event()) {
+          <div class="event-hero">
+            <div class="hero-cover"
+                 [style.backgroundImage]="'url(' + event()!.coverImage + ')'">
+              <div class="hero-overlay"></div>
+            </div>
+            <div class="hero-content">
+              @if (event()!.profileImage) {
+                <div class="hero-avatar">
+                  <img [src]="event()!.profileImage" [alt]="event()!.name">
+                </div>
+              }
+              <h1 class="hero-title">{{ event()!.name }}</h1>
+              <div class="hero-date">
+                <i class="bi bi-calendar-event"></i>
+                <span>{{ event()!.date | date:'dd MMMM yyyy' }}</span>
               </div>
-              <h1 class="gallery-event-name">{{ event()?.name }}</h1>
+            </div>
+          </div>
+        }
+
+        <!-- Barra de acción -->
+        <div class="gallery-toolbar">
+          <div class="gallery-toolbar__inner">
+            <div class="badge-live">
+              <span class="dot"></span> En vivo
             </div>
             <div class="upload-area">
               <input type="file" id="photo-upload" accept="image/*" multiple
@@ -57,13 +77,18 @@ import { Photo } from '../../shared/models/Photo.model';
           </div>
         </div>
 
+        <!-- Galería -->
         <div class="photo-grid">
           @for (photo of photos(); track photo._id) {
             <div class="grid-photo">
-              <img [src]="photo.imageUrl"
-              [alt]="'Foto de ' + photo.uploadedBy">
-              <div class="photo-overlay">
-                <span class="photo-guest-name">{{ photo.uploadedBy }}</span>
+              <div class="photo-img-wrap">
+                <img [src]="photo.imageUrl"
+                     [alt]="'Foto de ' + photo.uploadedBy"
+                     loading="lazy">
+              </div>
+              <div class="photo-caption">
+                <i class="bi bi-person-circle"></i>
+                <span>Subido por: <strong>{{ photo.uploadedBy }}</strong></span>
               </div>
             </div>
           }
@@ -78,6 +103,7 @@ import { Photo } from '../../shared/models/Photo.model';
   `,
   styles: [`
     .gallery-page { min-height: 100vh; background: var(--pw-ink); }
+
     .join-overlay {
       min-height: 100vh;
       display: flex; align-items: center; justify-content: center;
@@ -105,19 +131,57 @@ import { Photo } from '../../shared/models/Photo.model';
     }
     .w-full { width: 100%; justify-content: center; }
 
-    .gallery-header {
-      padding: 1.5rem 2rem;
+    /* ---- Hero (portada + perfil + título + fecha) ---- */
+    .event-hero { position: relative; margin-bottom: 0.5rem; }
+    .hero-cover {
+      height: 260px;
+      background-size: cover;
+      background-position: center;
+      background-color: var(--pw-ink-soft);
+      position: relative;
+    }
+    .hero-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(to bottom,
+        rgba(13,13,20,0.10) 0%,
+        rgba(13,13,20,0.55) 60%,
+        var(--pw-ink) 100%);
+    }
+    .hero-content {
+      position: relative;
+      margin-top: -72px;
+      padding: 0 2rem 1.5rem;
+      display: flex; flex-direction: column; align-items: center; text-align: center;
+    }
+    .hero-avatar {
+      width: 116px; height: 116px; border-radius: 50%; overflow: hidden;
+      border: 4px solid var(--pw-ink);
+      box-shadow: 0 0 0 1px rgba(124,58,237,0.45), 0 10px 30px rgba(0,0,0,0.45);
+      background: var(--pw-ink-soft);
+      margin-bottom: 0.85rem;
+      img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    }
+    .hero-title { font-size: 1.9rem; margin: 0 0 0.4rem; }
+    .hero-date {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      color: rgba(248,247,255,0.6); font-size: 0.9rem;
+      i { color: var(--pw-rose); }
+    }
+
+    /* ---- Barra de acción ---- */
+    .gallery-toolbar {
+      padding: 1rem 2rem;
       background: rgba(13,13,20,0.9);
       backdrop-filter: blur(12px);
       border-bottom: 1px solid rgba(255,255,255,0.06);
       position: sticky; top: 0; z-index: 10;
     }
-    .gallery-header__inner {
+    .gallery-toolbar__inner {
       max-width: 1200px; margin: 0 auto;
       display: flex; align-items: center; justify-content: space-between; gap: 1rem;
     }
-    .gallery-event-name { font-family: 'Syne', sans-serif; font-size: 1.3rem; font-weight: 800; margin: 0.25rem 0 0; }
 
+    /* ---- Grid de fotos ---- */
     .photo-grid {
       padding: 1.5rem 2rem;
       max-width: 1200px; margin: 0 auto;
@@ -125,19 +189,21 @@ import { Photo } from '../../shared/models/Photo.model';
     }
     .grid-photo {
       break-inside: avoid; margin-bottom: 1rem;
-      border-radius: 12px; overflow: hidden;
-      position: relative; cursor: zoom-in;
-      &:hover .photo-overlay { opacity: 1; }
-      img { width: 100%; display: block; border-radius: 12px; }
+      border-radius: 14px; overflow: hidden;
+      background: var(--pw-card-bg);
+      border: 1px solid var(--pw-card-border);
+      transition: border-color 0.2s, transform 0.2s;
+      &:hover { border-color: rgba(124,58,237,0.4); transform: translateY(-3px); }
     }
-    .photo-overlay {
-      position: absolute; inset: 0;
-      background: linear-gradient(to top, rgba(0,0,0,0.6), transparent 50%);
-      border-radius: 12px;
-      display: flex; align-items: flex-end; padding: 0.75rem;
-      opacity: 0; transition: opacity 0.2s;
+    .photo-img-wrap img { width: 100%; display: block; }
+    .photo-caption {
+      display: flex; align-items: center; gap: 0.4rem;
+      padding: 0.65rem 0.9rem;
+      font-size: 0.78rem;
+      color: rgba(248,247,255,0.65);
+      i { color: var(--pw-violet-light); font-size: 0.95rem; }
+      strong { color: var(--pw-cream); font-weight: 600; }
     }
-    .photo-guest-name { font-size: 0.8rem; font-weight: 500; color: rgba(255,255,255,0.9); }
     .no-photos {
       column-span: all;
       text-align: center; padding: 4rem 2rem;
@@ -153,11 +219,10 @@ export class GalleryComponent implements OnInit, OnDestroy {
   private fb            = inject(FormBuilder);
 
   slug    = signal('');
-  event = signal<PhotoWallEvent | null>(null);
+  event   = signal<PhotoWallEvent | null>(null);
   photos  = signal<Photo[]>([]);
   loading = signal(true);
   joiningLoading = signal(false);
-
   hasSession = signal(false);
 
   joinForm = this.fb.nonNullable.group({
@@ -170,12 +235,10 @@ export class GalleryComponent implements OnInit, OnDestroy {
     const slug = this.route.snapshot.paramMap.get('slug') ?? '';
     this.slug.set(slug);
     this.hasSession.set(this.guestService.hasSession(slug));
-
     this.eventsService.getEventBySlug(slug).subscribe({
       next: (ev) => { this.event.set(ev); this.loading.set(false); },
       error: ()  => this.loading.set(false)
     });
-
     if (this.hasSession()) {
       this.loadPhotos();
       this.startPolling();
@@ -187,76 +250,50 @@ export class GalleryComponent implements OnInit, OnDestroy {
   }
 
   join() {
-
-  if (this.joinForm.invalid) return;
-
-  const event = this.event();
-
-  if (!event) return;
-
-  this.joiningLoading.set(true);
-this.guestService
-  .join(
-    event._id,
-    this.slug(),
-    this.joinForm.getRawValue()
-  )
-  .subscribe({
-    next: () => {
-      this.hasSession.set(true);
-      this.joiningLoading.set(false);
-      this.loadPhotos();
-      this.startPolling();
-    },
-    error: (err) => {
-      console.error(err);
-      this.joiningLoading.set(false);
-    }
-  });
-
-}
-
-onFileSelected(event: globalThis.Event) {
-
-  const input = event.target as HTMLInputElement;
-
-  if (!input.files?.length) return;
-
-  const session = this.guestService.getSession(this.slug());
-
-  if (!session) return;
-
-  Array.from(input.files).forEach(file => {
-
-    this.photosService
-      .uploadPhoto(
-        session.eventId,
-        session.guestId,
-        file
-      )
+    if (this.joinForm.invalid) return;
+    const event = this.event();
+    if (!event) return;
+    this.joiningLoading.set(true);
+    this.guestService
+      .join(event._id, this.slug(), this.joinForm.getRawValue())
       .subscribe({
-        next: () => this.loadPhotos()
+        next: () => {
+          this.hasSession.set(true);
+          this.joiningLoading.set(false);
+          this.loadPhotos();
+          this.startPolling();
+        },
+        error: (err) => {
+          console.error(err);
+          this.joiningLoading.set(false);
+        }
       });
+  }
 
-  });
-
-}
-
-private loadPhotos() {
-
-  if (!this.event()) return;
-
-  this.photosService
-    .getPhotosByEvent(this.event()!._id)
-    .subscribe({
-      next: (photos) => {
-        this.photos.set(photos);
-      }
+  onFileSelected(event: globalThis.Event) {
+    const input = event.target as HTMLInputElement;
+    if (!input.files?.length) return;
+    const session = this.guestService.getSession(this.slug());
+    if (!session) return;
+    Array.from(input.files).forEach(file => {
+      this.photosService
+        .uploadPhoto(session.eventId, session.guestId, file)
+        .subscribe({
+          next: () => this.loadPhotos()
+        });
     });
+  }
 
-}
+  private loadPhotos() {
+    if (!this.event()) return;
+    this.photosService
+      .getPhotosByEvent(this.event()!._id)
+      .subscribe({
+        next: (photos) => this.photos.set(photos)
+      });
+  }
+
   private startPolling() {
-    // Poll every 5 seconds for new photos (WebSockets coming soon)
     this.pollInterval = setInterval(() => this.loadPhotos(), 5000);
   }
 }

@@ -7,7 +7,7 @@ import { UserRole } from '../models/User.model';
 const router = Router();
 
 router.post('/upload', upload.single('photo'), uploadPhoto);
-router.delete('/:photoId',ensureAuth([UserRole.GUEST || UserRole.ORGANIZER]), deletePhoto);
+router.delete('/:photoId', ensureAuth([UserRole.ORGANIZER]), deletePhoto);
 router.get('/event/:eventId', getPhotosByEvent);
 
 export default router;

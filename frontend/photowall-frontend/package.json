@@ -20,12 +20,13 @@
     "@angular/platform-browser": "^17.3.0",
     "@angular/platform-browser-dynamic": "^17.3.0",
     "@angular/router": "^17.3.0",
-    "rxjs": "~7.8.0",
-    "tslib": "^2.6.0",
-    "zone.js": "~0.14.0",
     "bootstrap": "^5.3.3",
     "bootstrap-icons": "^1.11.3",
-    "qrcode": "^1.5.4"
+    "qrcode": "^1.5.4",
+    "rxjs": "~7.8.0",
+    "socket.io-client": "^4.8.3",
+    "tslib": "^2.6.0",
+    "zone.js": "~0.14.0"
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "^17.3.0",
