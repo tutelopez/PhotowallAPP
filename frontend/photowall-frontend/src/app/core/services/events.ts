@@ -59,13 +59,21 @@ export class EventsService {
         organizer: res.event.organizer,
         photoCount: res.photos?.length ?? 0,
         createdAt: '',
-        updatedAt: ''
+        updatedAt: '',
+        messagesEnabled: res.event.messagesEnabled ?? true,
       }))
     );
 }
  getMyEvents() {
   return this.http.get<PhotoWallEvent[]>(
     `${this.base}/my-events`
+  );
+}
+
+toggleMessages(eventId: string, enabled: boolean) {
+  return this.http.patch<{ message: string; event: PhotoWallEvent }>(
+    `${this.base}/${eventId}/messages-toggle`,
+    { enabled }
   );
 }
 }

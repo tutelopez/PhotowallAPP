@@ -35,6 +35,12 @@ router.get(
   EventController.getEventDetail
 );
 
+router.patch(
+  '/:eventId/messages-toggle',
+  ensureAuth([UserRole.ORGANIZER]),
+  EventController.toggleMessages
+);
+
 // ⚠️ SIEMPRE AL FINAL
 router.get('/:slug', controller.getBySlug);
 

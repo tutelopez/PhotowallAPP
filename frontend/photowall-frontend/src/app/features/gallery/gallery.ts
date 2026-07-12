@@ -7,6 +7,7 @@ import { PhotosService } from '../../core/services/photos';
 import { EventsService } from '../../core/services/events';
 import { PhotoWallEvent } from '../../shared/models/Event.model';
 import { Photo } from '../../shared/models/Photo.model';
+import { MessagesService } from '../../core/services/messages';
 
 @Component({
   selector: 'app-gallery',
@@ -76,6 +77,22 @@ import { Photo } from '../../shared/models/Photo.model';
             </div>
           </div>
         </div>
+
+        <div class="comment-section">
+  <form [formGroup]="commentForm" (ngSubmit)="sendComment()" class="comment-form">
+    <i class="bi bi-chat-heart"></i>
+    <input type="text" formControlName="text" maxlength="200"
+           placeholder="Escribe un mensaje para la pantalla de proyección…"
+           class="comment-input">
+    <button type="submit" class="comment-send"
+            [disabled]="commentForm.invalid || sendingComment()">
+      <i class="bi bi-send-fill"></i>
+    </button>
+  </form>
+  @if (commentSent()) {
+    <div class="comment-toast">¡Tu mensaje aparecerá en la pantalla! ✨</div>
+  }
+</div>
 
         <!-- Galería -->
         <div class="photo-grid">
@@ -180,6 +197,34 @@ import { Photo } from '../../shared/models/Photo.model';
       max-width: 1200px; margin: 0 auto;
       display: flex; align-items: center; justify-content: space-between; gap: 1rem;
     }
+
+    .comment-section {
+  padding: 0 2rem 1rem; max-width: 1200px; margin: 0 auto;
+}
+.comment-form {
+  display: flex; align-items: center; gap: 0.6rem;
+  background: var(--pw-card-bg); border: 1px solid var(--pw-card-border);
+  border-radius: 100px; padding: 0.5rem 0.5rem 0.5rem 1.1rem;
+  margin-top: 1rem;
+  i.bi-chat-heart { color: var(--pw-rose); }
+}
+.comment-input {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: var(--pw-cream); font-size: 0.9rem;
+  &::placeholder { color: rgba(248,247,255,0.35); }
+}
+.comment-send {
+  background: var(--pw-violet); color: var(--pw-cream); border: none;
+  width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+  &:hover:not(:disabled) { background: #6D28D9; transform: translateY(-1px); }
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+}
+.comment-toast {
+  margin-top: 0.6rem; font-size: 0.8rem; color: var(--pw-violet-light);
+  text-align: center;
+}
 
     /* ---- Grid de fotos ---- */
     .photo-grid {
@@ -296,4 +341,29 @@ export class GalleryComponent implements OnInit, OnDestroy {
   private startPolling() {
     this.pollInterval = setInterval(() => this.loadPhotos(), 5000);
   }
+
+  private messagesService = inject(MessagesService);
+commentForm = this.fb.nonNullable.group({
+  text: ['', [Validators.required, Validators.maxLength(200)]]
+});
+sendingComment = signal(false);
+commentSent = signal(false);
+sendComment() {
+  if (this.commentForm.invalid) return;
+  const session = this.guestService.getSession(this.slug());
+  const event = this.event();
+  if (!session || !event) return;
+  this.sendingComment.set(true);
+  this.messagesService
+    .sendMessage(event._id, session.guestId, this.commentForm.getRawValue().text)
+    .subscribe({
+      next: () => {
+        this.sendingComment.set(false);
+        this.commentForm.reset();
+        this.commentSent.set(true);
+        setTimeout(() => this.commentSent.set(false), 2500);
+      },
+      error: () => this.sendingComment.set(false)
+    });
+}
 }

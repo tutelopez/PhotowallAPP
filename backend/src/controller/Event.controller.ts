@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import * as EventService from '../service/Event.service';
-
+import { io } from '../app';
 
 export const create = async (req: Request, res: Response) => {
   try {
@@ -119,3 +119,16 @@ export const getEventManageData = async (req: Request, res: Response) => {
     });
   }
 }
+
+export const toggleMessages = async (req: Request, res: Response) => {
+  try {
+    const { eventId } = req.params;
+    const organizerId = (req as any).user.userId;
+    const { enabled } = req.body;
+    const event = await EventService.toggleMessages(eventId, organizerId, !!enabled);
+    res.json({ message: 'Preferencia de mensajes actualizada', event });
+    io.to(`event_${eventId}`).emit('messages-toggle', { enabled: event.messagesEnabled });
+  } catch (error: any) {
+    res.status(400).json({ message: error.message || 'Error actualizando mensajes' });
+  }
+};

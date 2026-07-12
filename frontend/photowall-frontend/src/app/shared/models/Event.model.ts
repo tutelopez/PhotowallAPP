@@ -13,4 +13,5 @@ export interface PhotoWallEvent {
   photoCount: number;
   createdAt: string;
   updatedAt: string;
+  messagesEnabled: boolean;
 }

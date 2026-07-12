@@ -127,7 +127,8 @@ export const getEventFullData = async (eventId: string) => {
       qrCode: event.qrCode,
       coverImage: event.coverImage,
       profileImage: event.profileImage,
-      organizer: event.organizer
+      organizer: event.organizer,
+      messagesEnabled: event.messagesEnabled,
     },
 
     guests: {
@@ -189,6 +190,24 @@ export const updateEvent = async (
     event.profileImage = result.secure_url;
   }
 
+  await event.save();
+  return event;
+};
+
+// Habilitar o deshabilitar mensajes en un evento
+export const toggleMessages = async (
+  eventId: string,
+  organizerId: string,
+  enabled: boolean
+) => {
+  const event = await EventModel.findOne({
+    _id: eventId,
+    organizer: organizerId
+  });
+  if (!event) {
+    throw new Error('Evento no encontrado o no autorizado');
+  }
+  event.messagesEnabled = enabled;
   await event.save();
   return event;
 };

@@ -33,6 +33,10 @@ const EventSchema = new Schema(
       type: Boolean,
       default: true
     },
+    messagesEnabled: {
+  type: Boolean,
+  default: true
+},
 
     coverImage: {
       type: String,

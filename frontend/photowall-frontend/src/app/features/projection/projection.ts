@@ -6,6 +6,14 @@ import { EventsService } from '../../core/services/events';
 import { SocketService, NewPhotoEvent } from '../../core/services/socket';
 import { PhotoWallEvent } from '../../shared/models/Event.model';
 import { Photo } from '../../shared/models/Photo.model';
+import { NewMessageEvent, MessagesToggleEvent } from '../../core/services/socket';
+
+interface CommentBubble {
+  key: string;
+  author: string;
+  text: string;
+  visible: boolean;
+}
 
 interface Slide {
   key: string;
@@ -21,6 +29,7 @@ interface Spark {
 
 const SLIDE_DURATION = 6000;
 const CROSSFADE_DURATION = 1800;
+const MESSAGE_DURATION = SLIDE_DURATION * 2; // 12000ms — el doble que una foto
 
 @Component({
   selector: 'app-projection',
@@ -71,6 +80,13 @@ const CROSSFADE_DURATION = 1800;
           </div>
         }
 
+        @if (activeComment(); as cm) {
+  <div class="comment-bubble" [class.comment-bubble--visible]="cm.visible">
+    <i class="bi bi-chat-heart-fill"></i>
+    <span><strong>{{ cm.author }}</strong> dice: <em>"{{ cm.text }}"</em></span>
+  </div>
+}
+
         @if (photos().length === 0) {
           <div class="proj-empty">
             <div class="proj-empty-icon">📸</div>
@@ -92,6 +108,33 @@ const CROSSFADE_DURATION = 1800;
       position: relative;
       overflow: hidden;
     }
+
+      .comment-bubble {
+  position: absolute; top: 2.2rem; left: 50%;
+  transform: translate(-50%, -18px) scale(0.92);
+  z-index: 15; max-width: min(680px, 80vw);
+  display: inline-flex; align-items: center; gap: 0.7rem;
+  background: rgba(124,58,237,0.22);
+  border: 1px solid rgba(167,139,250,0.45);
+  backdrop-filter: blur(14px);
+  border-radius: 100px;
+  padding: 0.85rem 1.75rem;
+  box-shadow: 0 12px 40px rgba(124,58,237,0.35);
+  opacity: 0;
+  transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  i.bi-chat-heart-fill { color: var(--pw-rose); font-size: 1.1rem; flex-shrink: 0; }
+  span { font-size: 1.05rem; color: var(--pw-cream); }
+  strong { color: var(--pw-cream); font-weight: 700; }
+  em { color: rgba(248,247,255,0.85); font-style: normal; }
+}
+.comment-bubble--visible {
+  opacity: 1; transform: translate(-50%, 0) scale(1);
+  animation: bubble-float 12s ease-in-out infinite;
+}
+@keyframes bubble-float {
+  0%, 100% { transform: translate(-50%, 0) scale(1); }
+  50%      { transform: translate(-50%, -6px) scale(1); }
+}
 
     .proj-header {
       display: flex; align-items: center; justify-content: space-between; gap: 1rem;
@@ -235,10 +278,13 @@ export class ProjectionComponent implements OnInit, OnDestroy {
       this.socketService.joinEvent(ev._id);
       this.socketService.onNewPhoto(photo => this.handleNewPhoto(photo));
       this.socketService.onConnectionChange(connected => this.liveConnected.set(connected));
-
+      this.messagesEnabled.set(ev.messagesEnabled ?? true);
+      this.socketService.onNewMessage(msg => this.handleNewMessage(msg));
+      this.socketService.onMessagesToggle(payload => this.messagesEnabled.set(payload.enabled));
       // Carga inicial + respaldo por si el socket se desconecta
       this.loadPhotos(ev._id);
       this.pollTimer = setInterval(() => this.loadPhotos(ev._id), 20000);
+
     });
   }
 
@@ -271,6 +317,37 @@ export class ProjectionComponent implements OnInit, OnDestroy {
     });
   }
 
+  private handleNewMessage(payload: NewMessageEvent) {
+  if (!this.messagesEnabled()) return;
+  this.messageQueue.push({
+    key: `${payload._id}-${Date.now()}`,
+    author: payload.authorName,
+    text: payload.text,
+    visible: false
+  });
+  if (this.messageQueue.length > 5) this.messageQueue.shift();
+  if (!this.showingMessage) this.processMessageQueue();
+}
+private processMessageQueue() {
+  const next = this.messageQueue.shift();
+  if (!next) {
+    this.showingMessage = false;
+    return;
+  }
+  this.showingMessage = true;
+  this.activeComment.set(next);
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    this.activeComment.update(c => (c && c.key === next.key ? { ...c, visible: true } : c));
+  }));
+  setTimeout(() => {
+    this.activeComment.update(c => (c && c.key === next.key ? { ...c, visible: false } : c));
+    setTimeout(() => {
+      this.activeComment.set(null);
+      this.processMessageQueue();
+    }, 700);
+  }, MESSAGE_DURATION);
+}
+
   /** Llega por socket cuando un invitado sube una foto nueva */
   private handleNewPhoto(payload: NewPhotoEvent) {
     if (this.photos().some(p => p._id === payload._id)) return; // evita duplicados
@@ -302,6 +379,10 @@ export class ProjectionComponent implements OnInit, OnDestroy {
     this.advance();
     this.restartTimer();
   }
+activeComment = signal<CommentBubble | null>(null);
+messagesEnabled = signal(true);
+private messageQueue: CommentBubble[] = [];
+private showingMessage = false;
 
   private restartTimer() {
     if (this.slideTimer) clearInterval(this.slideTimer);

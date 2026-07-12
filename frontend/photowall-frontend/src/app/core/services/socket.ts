@@ -9,6 +9,18 @@ export interface NewPhotoEvent {
   createdAt: string;
 }
 
+export interface NewMessageEvent {
+  _id: string;
+  authorName: string;
+  text: string;
+  createdAt: string;
+}
+export interface MessagesToggleEvent {
+  enabled: boolean;
+}
+
+
+
 @Injectable({ providedIn: 'root' })
 export class SocketService {
   private socket: Socket | null = null;
@@ -41,4 +53,12 @@ export class SocketService {
     this.socket?.disconnect();
     this.socket = null;
   }
+
+
+onNewMessage(callback: (msg: NewMessageEvent) => void) {
+  this.connect().on('new-message', callback);
+}
+onMessagesToggle(callback: (payload: MessagesToggleEvent) => void) {
+  this.connect().on('messages-toggle', callback);
+}
 }

@@ -43,6 +43,10 @@ import { PhotoWallEvent } from '../../../../shared/models/Event.model';
               <a [href]="'/e/' + event()!.slug" target="_blank" class="btn-pw-primary">
                 <i class="bi bi-box-arrow-up-right"></i> Ver galería
               </a>
+              <button class="btn-pw-ghost" (click)="toggleMessages()" [disabled]="togglingMessages()">
+  <i class="bi" [class.bi-chat-dots-fill]="event()!.messagesEnabled" [class.bi-chat-dots]="!event()!.messagesEnabled"></i>
+  {{ event()!.messagesEnabled ? 'Mensajes activados' : 'Mensajes desactivados' }}
+</button>
             </div>
           </div>
         </div>
@@ -265,4 +269,18 @@ export class EventDetailComponent implements OnInit {
       this.photos.update(p => p.filter(ph => ph._id !== id));
     });
   }
+
+  togglingMessages = signal(false);
+toggleMessages() {
+  const event = this.event();
+  if (!event) return;
+  this.togglingMessages.set(true);
+  this.evSvc.toggleMessages(event._id, !event.messagesEnabled).subscribe({
+    next: (res) => {
+      this.event.update(e => e ? { ...e, messagesEnabled: res.event.messagesEnabled } : e);
+      this.togglingMessages.set(false);
+    },
+    error: () => this.togglingMessages.set(false)
+  });
+}
 }

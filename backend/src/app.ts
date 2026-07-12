@@ -8,6 +8,7 @@ import guestRoutes from './routes/Guest.routes';
 import photoRoutes from './routes/Photo.routes';
 import adminRoutes from './routes/Admin.routes';
 import authRoutes from './routes/Auth.routes';
+import messageRoutes from './routes/Message.routes';
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -21,6 +22,7 @@ app.use('/api/guests', guestRoutes);
 app.use('/api/photos', photoRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/messages', messageRoutes);
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   if (err instanceof multer.MulterError) {
     if (err.code === 'LIMIT_FILE_SIZE') {
