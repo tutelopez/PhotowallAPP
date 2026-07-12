@@ -280,6 +280,7 @@ export class ProjectionComponent implements OnInit, OnDestroy {
       this.socketService.onConnectionChange(connected => this.liveConnected.set(connected));
       this.messagesEnabled.set(ev.messagesEnabled ?? true);
       this.socketService.onNewMessage(msg => this.handleNewMessage(msg));
+      this.socketService.onMessageDeleted(({ _id }) => this.handleMessageDeleted(_id));
       this.socketService.onMessagesToggle(payload => this.messagesEnabled.set(payload.enabled));
       // Carga inicial + respaldo por si el socket se desconecta
       this.loadPhotos(ev._id);
@@ -423,7 +424,18 @@ private showingMessage = false;
       this.slides.update(list => list.filter(s => s.key === slide.key));
     }, CROSSFADE_DURATION + 150);
   }
-
+  
+private handleMessageDeleted(id: string) {
+  this.messageQueue = this.messageQueue.filter(m => !m.key.startsWith(id));
+  const current = this.activeComment();
+  if (current && current.key.startsWith(id)) {
+    this.activeComment.update(c => (c ? { ...c, visible: false } : c));
+    setTimeout(() => {
+      this.activeComment.set(null);
+      this.processMessageQueue();
+    }, 700);
+  }
+}
   private generateSparks(count: number): Spark[] {
     const hues: Spark['hue'][] = ['violet', 'rose', 'cream'];
     return Array.from({ length: count }, () => {

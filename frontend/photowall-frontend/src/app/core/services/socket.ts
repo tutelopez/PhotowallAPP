@@ -61,4 +61,9 @@ onNewMessage(callback: (msg: NewMessageEvent) => void) {
 onMessagesToggle(callback: (payload: MessagesToggleEvent) => void) {
   this.connect().on('messages-toggle', callback);
 }
+
+onMessageDeleted(callback: (payload: { _id: string }) => void) {
+  this.connect().on('message-deleted', callback);
+}
+
 }

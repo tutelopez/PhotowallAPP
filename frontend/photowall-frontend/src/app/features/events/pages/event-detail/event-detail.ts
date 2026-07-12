@@ -5,6 +5,10 @@ import { EventsService } from '../../../../core/services/events';
 import { PhotosService } from '../../../../core/services/photos';
 import { Photo } from '../../../../shared/models/Photo.model';
 import { PhotoWallEvent } from '../../../../shared/models/Event.model';
+import { MessagesService } from '../../../../core/services/messages';
+import { SocketService } from '../../../../core/services/socket';
+import { GuestMessage } from '../../../../shared/models/Message.model';
+
 
 @Component({
   selector: 'app-event-detail',
@@ -89,6 +93,7 @@ import { PhotoWallEvent } from '../../../../shared/models/Event.model';
                 </div>
               </div>
             </div>
+
           </div>
 
           <!-- Fotos -->
@@ -116,6 +121,34 @@ import { PhotoWallEvent } from '../../../../shared/models/Event.model';
               </div>
             }
           </div>
+           <div class="messages-section">
+  <div class="messages-header">
+    <h3>Mensajes de invitados ({{ messages().length }})</h3>
+  </div>
+  @if (messages().length === 0) {
+    <div class="no-photos-yet">
+      <p>Aún no hay mensajes. Aparecerán aquí en cuanto los invitados escriban desde la galería.</p>
+    </div>
+  } @else {
+    <div class="messages-list">
+      @for (msg of messages(); track msg._id) {
+        <div class="message-row">
+          <div class="message-content">
+            <i class="bi bi-chat-heart-fill"></i>
+            <div>
+              <span class="message-author">{{ msg.authorName }}</span>
+              <p class="message-text">"{{ msg.text }}"</p>
+            </div>
+          </div>
+          <button (click)="deleteMessage(msg._id)" class="delete-btn"
+                  [disabled]="deletingMessageId() === msg._id" title="Eliminar mensaje">
+            <i class="bi bi-trash"></i>
+          </button>
+        </div>
+      }
+    </div>
+  }
+</div>
         </div>
       }
     </div>
@@ -230,6 +263,20 @@ import { PhotoWallEvent } from '../../../../shared/models/Event.model';
       font-size: 0.75rem; flex-shrink: 0;
       &:hover { background: rgba(226,75,74,0.28); }
     }
+    .messages-section { margin-top: 2.5rem; }
+.messages-header h3 { font-family: 'Syne', sans-serif; font-size: 1.2rem; margin-bottom: 1.5rem; }
+.messages-list { display: flex; flex-direction: column; gap: 0.75rem; }
+.message-row {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;
+  background: var(--pw-card-bg); border: 1px solid var(--pw-card-border);
+  border-radius: 12px; padding: 0.9rem 1.1rem;
+  transition: border-color 0.2s;
+  &:hover { border-color: rgba(124,58,237,0.35); }
+}
+.message-content { display: flex; align-items: flex-start; gap: 0.7rem; min-width: 0; }
+.message-content i { color: var(--pw-rose); margin-top: 0.2rem; flex-shrink: 0; }
+.message-author { font-size: 0.8rem; font-weight: 700; color: var(--pw-violet-light); }
+.message-text { margin: 0.15rem 0 0; font-size: 0.9rem; color: rgba(248,247,255,0.85); word-break: break-word; }
   `]
 })
 export class EventDetailComponent implements OnInit {
@@ -242,6 +289,12 @@ export class EventDetailComponent implements OnInit {
   loading = signal(true);
   copied  = signal(false);
 
+
+  private messagesSvc = inject(MessagesService);
+  private socketSvc  = inject(SocketService);
+  messages = signal<GuestMessage[]>([]);
+  deletingMessageId = signal<string | null>(null);
+
   guestUrl = () => `${window.location.origin}/e/${this.event()?.slug}`;
 
   ngOnInit() {
@@ -251,10 +304,36 @@ export class EventDetailComponent implements OnInit {
         this.event.set(ev);
         this.loading.set(false);
         this.photoSvc.getPhotosByEvent(ev._id).subscribe(photos => this.photos.set(photos));
+      this.messagesSvc.getMessagesByEvent(ev._id).subscribe(msgs => this.messages.set(msgs));
+this.socketSvc.joinEvent(ev._id);
+this.socketSvc.onNewMessage(msg => {
+  this.messages.update(list => [
+    { _id: msg._id, event: ev._id, authorName: msg.authorName, text: msg.text, createdAt: msg.createdAt },
+    ...list
+  ]);
+});
+this.socketSvc.onMessageDeleted(({ _id }) => {
+  this.messages.update(list => list.filter(m => m._id !== _id));
+});
       },
       error: () => this.loading.set(false)
     });
   }
+
+  ngOnDestroy() {
+  this.socketSvc.disconnect();
+}
+deleteMessage(id: string) {
+  if (!confirm('¿Eliminar este mensaje?')) return;
+  this.deletingMessageId.set(id);
+  this.messagesSvc.deleteMessage(id).subscribe({
+    next: () => {
+      this.messages.update(list => list.filter(m => m._id !== id));
+      this.deletingMessageId.set(null);
+    },
+    error: () => this.deletingMessageId.set(null)
+  });
+}
 
   copyLink() {
     navigator.clipboard.writeText(this.guestUrl()).then(() => {
@@ -282,5 +361,7 @@ toggleMessages() {
     },
     error: () => this.togglingMessages.set(false)
   });
+
+
 }
 }

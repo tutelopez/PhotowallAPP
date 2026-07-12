@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { io } from '../app';
+import { AuthRequest } from '../middlewares/Auth.middlware';
 import * as MessageService from '../service/Message.service';
 export const createMessage = async (req: Request, res: Response) => {
   try {
@@ -22,12 +23,26 @@ export const createMessage = async (req: Request, res: Response) => {
     res.status(400).json({ message: error.message || 'Error enviando el mensaje' });
   }
 };
-export const getMessagesByEvent = async (req: Request, res: Response) => {
+export const getMessagesByEvent = async (req: AuthRequest, res: Response) => {
   try {
     const { eventId } = req.params;
-    const messages = await MessageService.getMessagesByEvent(eventId);
+    const organizerId = req.user?.userId;
+    if (!organizerId) return res.status(401).json({ message: 'No autorizado' });
+    const messages = await MessageService.getMessagesByEvent(eventId, organizerId);
     res.json({ total: messages.length, messages });
   } catch (error: any) {
-    res.status(500).json({ message: 'Error obteniendo mensajes' });
+    res.status(error.status || 500).json({ message: error.message || 'Error obteniendo mensajes' });
+  }
+};
+export const deleteMessage = async (req: AuthRequest, res: Response) => {
+  try {
+    const { messageId } = req.params;
+    const organizerId = req.user?.userId;
+    if (!organizerId) return res.status(401).json({ message: 'No autorizado' });
+    const message = await MessageService.deleteMessage(messageId, organizerId);
+    res.json({ message: 'Mensaje eliminado correctamente', data: message });
+    io.to(`event_${message.event}`).emit('message-deleted', { _id: message._id });
+  } catch (error: any) {
+    res.status(error.status || 404).json({ message: error.message });
   }
 };
