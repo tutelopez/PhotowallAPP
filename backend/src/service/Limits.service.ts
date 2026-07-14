@@ -2,6 +2,7 @@ import { EventModel } from '../models/Event.model';
 import { PhotoModel } from '../models/Photo.model';
 import { MessageModel } from '../models/Message.model';
 import { PLAN_LIMITS, PlanType } from '../models/Plan';
+
 export const assertPhotoLimit = async (eventId: string) => {
   const event = await EventModel.findById(eventId);
   if (!event) {
@@ -9,7 +10,7 @@ export const assertPhotoLimit = async (eventId: string) => {
     err.status = 404;
     throw err;
   }
-  const limits = PLAN_LIMITS[event.plan as PlanType];
+  const limits = PLAN_LIMITS[event.plan as PlanType] ?? PLAN_LIMITS[PlanType.FREE];
   if (limits.maxPhotos === null) return;
   const count = await PhotoModel.countDocuments({ event: eventId });
   if (count >= limits.maxPhotos) {
@@ -21,6 +22,7 @@ export const assertPhotoLimit = async (eventId: string) => {
     throw err;
   }
 };
+
 export const assertMessageLimit = async (eventId: string) => {
   const event = await EventModel.findById(eventId);
   if (!event) {
@@ -28,7 +30,7 @@ export const assertMessageLimit = async (eventId: string) => {
     err.status = 404;
     throw err;
   }
-  const limits = PLAN_LIMITS[event.plan as PlanType];
+  const limits = PLAN_LIMITS[event.plan as PlanType] ?? PLAN_LIMITS[PlanType.FREE];
   if (limits.maxMessages === null) return;
   const count = await MessageModel.countDocuments({ event: eventId });
   if (count >= limits.maxMessages) {
@@ -40,6 +42,7 @@ export const assertMessageLimit = async (eventId: string) => {
     throw err;
   }
 };
+
 export const getUsage = async (eventId: string, plan: PlanType) => {
   const limits = PLAN_LIMITS[plan] ?? PLAN_LIMITS[PlanType.FREE];
   const [photoCount, messageCount] = await Promise.all([
@@ -56,5 +59,4 @@ export const getUsage = async (eventId: string, plan: PlanType) => {
     branding: limits.branding,
     galleryDays: limits.galleryDays
   };
-
 };

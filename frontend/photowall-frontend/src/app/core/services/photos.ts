@@ -53,4 +53,10 @@ getPhotosByEvent(eventId: string) {
     return this.http.delete<void>(`${this.base}/${photoId}`);
   }
 
+  downloadZip(eventId: string) {
+  return this.http.get(`${this.base}/event/${eventId}/download`, {
+    responseType: 'blob'
+  });
+}
+
 }

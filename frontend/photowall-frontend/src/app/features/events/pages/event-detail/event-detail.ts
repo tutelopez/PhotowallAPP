@@ -115,7 +115,15 @@ import { PLAN_LABELS } from '../../../../shared/models/Plan.model';
 
           <!-- Fotos -->
           <div class="photos-section">
-            <h3>Fotos del evento ({{ photos().length }})</h3>
+            <div class="photos-header">
+              <h3>Fotos del evento ({{ photos().length }})</h3>
+              @if (photos().length > 0) {
+                <button class="btn-pw-ghost btn-sm" (click)="downloadZip()" [disabled]="downloadingZip()">
+                  <i class="bi" [class.bi-file-earmark-zip]="!downloadingZip()" [class.bi-hourglass-split]="downloadingZip()"></i>
+                  {{ downloadingZip() ? 'Preparando ZIP…' : 'Descargar álbum de fotos' }}
+                </button>
+              }
+            </div>
             @if (photos().length === 0) {
               <div class="no-photos-yet">
                 <p>Aún no hay fotos. Cuando los invitados empiecen a subir, aparecerán aquí.</p>
@@ -261,7 +269,11 @@ import { PLAN_LABELS } from '../../../../shared/models/Plan.model';
     .active-dot { color: #5dcaa5; }
 
     /* ---- Fotos ---- */
-    .photos-section h3 { font-family: 'Syne', sans-serif; font-size: 1.2rem; margin-bottom: 1.5rem; }
+    .photos-header {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;
+    }
+    .photos-header h3 { font-family: 'Syne', sans-serif; font-size: 1.2rem; margin: 0; }
     .no-photos-yet {
       border: 1px dashed rgba(255,255,255,0.1); border-radius: 12px;
       padding: 3rem; text-align: center; color: rgba(248,247,255,0.4);
@@ -322,6 +334,7 @@ export class EventDetailComponent implements OnInit, OnDestroy {
   messages = signal<GuestMessage[]>([]);
   deletingMessageId = signal<string | null>(null);
   togglingMessages = signal(false);
+  downloadingZip = signal(false);
 
   guestUrl = () => `${window.location.origin}/e/${this.event()?.slug}`;
 
@@ -402,6 +415,24 @@ export class EventDetailComponent implements OnInit, OnDestroy {
         this.togglingMessages.set(false);
       },
       error: () => this.togglingMessages.set(false)
+    });
+  }
+
+  downloadZip() {
+    const event = this.event();
+    if (!event) return;
+    this.downloadingZip.set(true);
+    this.photoSvc.downloadZip(event._id).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${event.slug}-fotos.zip`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        this.downloadingZip.set(false);
+      },
+      error: () => this.downloadingZip.set(false)
     });
   }
 }

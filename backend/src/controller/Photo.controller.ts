@@ -6,6 +6,10 @@ import { GuestModel } from '../models/Guest.model';
 import { UserModel, UserRole } from '../models/User.model';
 import { AuthRequest } from '../middlewares/Auth.middlware';
 
+import { EventModel } from '../models/Event.model';
+import { ZipArchive } from 'archiver';
+
+
 export const uploadPhoto = async (req: Request, res: Response) => {
   try {
     const { eventId, guestId } = req.body;
@@ -72,5 +76,55 @@ export const getPhotosByEvent = async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error(error);
     res.status(500).json({ message: 'Error obteniendo fotos del evento' });
+  }
+};
+
+export const downloadPhotosZip = async (req: AuthRequest, res: Response) => {
+  try {
+    const { eventId } = req.params;
+    const organizerId = req.user?.userId;
+    if (!organizerId) {
+      return res.status(401).json({ message: 'No autorizado' });
+    }
+    const event = await EventModel.findOne({ _id: eventId, organizer: organizerId });
+    if (!event) {
+      return res.status(403).json({ message: 'Evento no encontrado o no autorizado' });
+    }
+    const photos = await PhotoService.getPhotosByEvent(eventId);
+    if (!photos.length) {
+      return res.status(404).json({ message: 'Este evento aún no tiene fotos' });
+    }
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="${event.slug}-fotos.zip"`);
+    const archive = new ZipArchive({ zlib: { level: 9 } });
+    archive.on('error', (err: Error) => {
+      console.error('🔴 Error generando ZIP:', err);
+      if (!res.headersSent) res.status(500).end();
+    });
+    archive.pipe(res);
+    let index = 1;
+    for (const photo of photos) {
+      try {
+        const response = await fetch(photo.imageUrl);
+        if (!response.ok) continue;
+        const buffer = Buffer.from(await response.arrayBuffer());
+        const ext = photo.imageUrl.split('.').pop()?.split('?')[0] || 'jpg';
+        const safeName = (photo.uploadedBy || 'invitado')
+          .replace(/[^a-zA-Z0-9-_ ]/g, '')
+          .trim() || 'invitado';
+        archive.append(buffer, {
+          name: `${String(index).padStart(3, '0')}-${safeName}.${ext}`
+        });
+        index++;
+      } catch (err) {
+        console.error(`⚠️ No se pudo incluir la foto ${photo._id}:`, err);
+      }
+    }
+    await archive.finalize();
+  } catch (error: any) {
+    console.error(error);
+    if (!res.headersSent) {
+      res.status(500).json({ message: 'Error generando el ZIP' });
+    }
   }
 };
