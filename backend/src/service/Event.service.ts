@@ -76,8 +76,9 @@ export const createEvent = async (data: any) => {
 export const getEventBySlug = async (slug: string) => {
   const event = await EventModel.findOne({ slug, isActive: true }).lean();
   if (!event) return null;
-  const usage = await getUsage(event._id.toString(), event.plan as PlanType);
-  return { ...event, usage };
+  const plan = (event.plan as PlanType) || PlanType.FREE;
+  const usage = await getUsage(event._id.toString(), plan);
+  return { ...event, plan, usage };
 };
 
 export const getEventsByOrganizer = async (organizerId: string) => {

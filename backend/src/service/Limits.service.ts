@@ -41,13 +41,13 @@ export const assertMessageLimit = async (eventId: string) => {
   }
 };
 export const getUsage = async (eventId: string, plan: PlanType) => {
-  const limits = PLAN_LIMITS[plan];
+  const limits = PLAN_LIMITS[plan] ?? PLAN_LIMITS[PlanType.FREE];
   const [photoCount, messageCount] = await Promise.all([
     PhotoModel.countDocuments({ event: eventId }),
     MessageModel.countDocuments({ event: eventId })
   ]);
   return {
-    plan,
+    plan: plan ?? PlanType.FREE,
     maxPhotos: limits.maxPhotos,
     currentPhotos: photoCount,
     maxMessages: limits.maxMessages,
@@ -56,4 +56,5 @@ export const getUsage = async (eventId: string, plan: PlanType) => {
     branding: limits.branding,
     galleryDays: limits.galleryDays
   };
+
 };
