@@ -1,4 +1,5 @@
 import { Schema, model } from 'mongoose';
+import { PlanType } from './Plan';
 
 
 
@@ -36,6 +37,11 @@ const EventSchema = new Schema(
     messagesEnabled: {
   type: Boolean,
   default: true
+},
+plan: {
+  type: String,
+  enum: Object.values(PlanType),
+  default: PlanType.FREE
 },
 
     coverImage: {

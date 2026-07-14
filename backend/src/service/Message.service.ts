@@ -2,12 +2,14 @@ import { GuestModel } from '../models/Guest.model';
 import { UserModel, UserRole } from '../models/User.model';
 import { MessageModel } from '../models/Message.model';
 import { EventModel } from '../models/Event.model';
+import { assertMessageLimit } from './Limits.service';
 
 export const createMessage = async (
   eventId: string,
   guestId: string,
   text: string
 ) => {
+  await assertMessageLimit(eventId);
   let guest = await UserModel.findOne({ _id: guestId, role: UserRole.GUEST });
   if (!guest) {
     guest = await GuestModel.findById(guestId);

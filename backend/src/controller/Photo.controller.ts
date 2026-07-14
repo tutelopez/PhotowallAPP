@@ -33,7 +33,10 @@ export const uploadPhoto = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error(error);
-    res.status(400).json({ message: error.message || 'Error subiendo la foto' });
+    res.status(error.status || 400).json({
+      message: error.message || 'Error subiendo la foto',
+      code: error.code
+    });
   }
 };
 

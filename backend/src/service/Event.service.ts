@@ -5,6 +5,11 @@ import { GuestModel } from '../models/Guest.model';
 import { PhotoModel } from '../models/Photo.model';
 import mongoose from 'mongoose';
 import cloudinary from '../config/cloudinary';
+import { PLAN_LIMITS, PlanType } from '../models/Plan';
+import { getUsage } from './Limits.service';
+
+
+
 const extractPublicId = (url: string) => {
   const parts = url.split('/');
   const filename = parts[parts.length - 1];
@@ -69,7 +74,11 @@ export const createEvent = async (data: any) => {
 
 
 export const getEventBySlug = async (slug: string) => {
-  return await EventModel.findOne({ slug, isActive: true });}
+  const event = await EventModel.findOne({ slug, isActive: true }).lean();
+  if (!event) return null;
+  const usage = await getUsage(event._id.toString(), event.plan as PlanType);
+  return { ...event, usage };
+};
 
 export const getEventsByOrganizer = async (organizerId: string) => {
   return await EventModel.find({
@@ -116,7 +125,7 @@ export const getEventFullData = async (eventId: string) => {
   const photos = await PhotoModel.find({ event: eventId })
     .populate('uploadedBy', 'name')
     .sort({ createdAt: -1 });
-
+const usage = await getUsage(eventId, event.plan as PlanType);
   return {
     event: {
       id: event._id,
@@ -128,6 +137,7 @@ export const getEventFullData = async (eventId: string) => {
       coverImage: event.coverImage,
       profileImage: event.profileImage,
       organizer: event.organizer,
+      plan: event.plan,
       messagesEnabled: event.messagesEnabled,
     },
 
@@ -136,7 +146,8 @@ export const getEventFullData = async (eventId: string) => {
       list: guests
     },
 
-    photos
+    photos,
+    usage
   };
 };
 

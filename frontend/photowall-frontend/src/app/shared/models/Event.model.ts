@@ -1,4 +1,6 @@
 import { PhotoWallEventType } from "../enums/event-type.enum";
+import { PlanType, PlanUsage } from './Plan.model';
+
 export interface PhotoWallEvent {
   _id: string;
   name: string;
@@ -14,4 +16,6 @@ export interface PhotoWallEvent {
   createdAt: string;
   updatedAt: string;
   messagesEnabled: boolean;
+  plan: PlanType;
+usage?: PlanUsage;
 }

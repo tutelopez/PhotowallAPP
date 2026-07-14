@@ -3,12 +3,14 @@ import { GuestModel } from '../models/Guest.model';
 import { PhotoModel } from '../models/Photo.model';
 import { EventModel } from '../models/Event.model';
 import { UserModel, UserRole } from '../models/User.model';
+import { assertPhotoLimit } from './Limits.service';
 
 export const uploadPhoto = async (
   file: Express.Multer.File,
   eventId: string,
   guestId: string
 ) => {
+  await assertPhotoLimit(eventId);
   let guest = await UserModel.findOne({ _id: guestId, role: UserRole.GUEST });
   if (!guest) {
     guest = await GuestModel.findById(guestId);

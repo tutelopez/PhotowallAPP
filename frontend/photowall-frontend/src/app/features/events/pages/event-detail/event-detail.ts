@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, computed, signal, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { EventsService } from '../../../../core/services/events';
@@ -8,7 +8,7 @@ import { PhotoWallEvent } from '../../../../shared/models/Event.model';
 import { MessagesService } from '../../../../core/services/messages';
 import { SocketService } from '../../../../core/services/socket';
 import { GuestMessage } from '../../../../shared/models/Message.model';
-
+import { PLAN_LABELS } from '../../../../shared/models/Plan.model';
 
 @Component({
   selector: 'app-event-detail',
@@ -48,14 +48,32 @@ import { GuestMessage } from '../../../../shared/models/Message.model';
                 <i class="bi bi-box-arrow-up-right"></i> Ver galería
               </a>
               <button class="btn-pw-ghost" (click)="toggleMessages()" [disabled]="togglingMessages()">
-  <i class="bi" [class.bi-chat-dots-fill]="event()!.messagesEnabled" [class.bi-chat-dots]="!event()!.messagesEnabled"></i>
-  {{ event()!.messagesEnabled ? 'Mensajes activados' : 'Mensajes desactivados' }}
-</button>
+                <i class="bi" [class.bi-chat-dots-fill]="event()!.messagesEnabled" [class.bi-chat-dots]="!event()!.messagesEnabled"></i>
+                {{ event()!.messagesEnabled ? 'Mensajes activados' : 'Mensajes desactivados' }}
+              </button>
             </div>
           </div>
         </div>
 
         <div class="detail-inner">
+          <div class="plan-summary">
+            <span class="plan-badge">{{ planLabel() }}</span>
+            <div class="usage-bar">
+              <span>Fotos: {{ event()!.usage?.currentPhotos }} / {{ event()!.usage?.maxPhotos ?? '∞' }}</span>
+              <div class="usage-track">
+                <div class="usage-fill" [style.width.%]="photosUsagePercent()"></div>
+              </div>
+            </div>
+            <div class="usage-bar">
+              <span>Mensajes: {{ event()!.usage?.currentMessages }} / {{ event()!.usage?.maxMessages ?? '∞' }}</span>
+              <div class="usage-track">
+                <div class="usage-fill" [style.width.%]="messagesUsagePercent()"></div>
+              </div>
+            </div>
+            <a href="https://wa.me/57XXXXXXXXXX?text=Quiero%20mejorar%20el%20plan%20de%20mi%20evento"
+               target="_blank" class="btn-pw-ghost">Mejorar plan</a>
+          </div>
+
           <!-- QR Panel -->
           <div class="qr-panel pw-card">
             <div class="qr-section">
@@ -93,7 +111,6 @@ import { GuestMessage } from '../../../../shared/models/Message.model';
                 </div>
               </div>
             </div>
-
           </div>
 
           <!-- Fotos -->
@@ -121,34 +138,36 @@ import { GuestMessage } from '../../../../shared/models/Message.model';
               </div>
             }
           </div>
-           <div class="messages-section">
-  <div class="messages-header">
-    <h3>Mensajes de invitados ({{ messages().length }})</h3>
-  </div>
-  @if (messages().length === 0) {
-    <div class="no-photos-yet">
-      <p>Aún no hay mensajes. Aparecerán aquí en cuanto los invitados escriban desde la galería.</p>
-    </div>
-  } @else {
-    <div class="messages-list">
-      @for (msg of messages(); track msg._id) {
-        <div class="message-row">
-          <div class="message-content">
-            <i class="bi bi-chat-heart-fill"></i>
-            <div>
-              <span class="message-author">{{ msg.authorName }}</span>
-              <p class="message-text">"{{ msg.text }}"</p>
+
+          <!-- Mensajes -->
+          <div class="messages-section">
+            <div class="messages-header">
+              <h3>Mensajes de invitados ({{ messages().length }})</h3>
             </div>
+            @if (messages().length === 0) {
+              <div class="no-photos-yet">
+                <p>Aún no hay mensajes. Aparecerán aquí en cuanto los invitados escriban desde la galería.</p>
+              </div>
+            } @else {
+              <div class="messages-list">
+                @for (msg of messages(); track msg._id) {
+                  <div class="message-row">
+                    <div class="message-content">
+                      <i class="bi bi-chat-heart-fill"></i>
+                      <div>
+                        <span class="message-author">{{ msg.authorName }}</span>
+                        <p class="message-text">"{{ msg.text }}"</p>
+                      </div>
+                    </div>
+                    <button (click)="deleteMessage(msg._id)" class="delete-btn"
+                            [disabled]="deletingMessageId() === msg._id" title="Eliminar mensaje">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                }
+              </div>
+            }
           </div>
-          <button (click)="deleteMessage(msg._id)" class="delete-btn"
-                  [disabled]="deletingMessageId() === msg._id" title="Eliminar mensaje">
-            <i class="bi bi-trash"></i>
-          </button>
-        </div>
-      }
-    </div>
-  }
-</div>
         </div>
       }
     </div>
@@ -170,9 +189,7 @@ import { GuestMessage } from '../../../../shared/models/Message.model';
       position: absolute; inset: 0;
       background: linear-gradient(to bottom, rgba(13,13,20,0.15) 0%, rgba(13,13,20,0.6) 60%, var(--pw-ink) 100%);
     }
-    .back-link {
-      color: rgba(248,247,255,0.7); font-size: 0.875rem;
-    }
+    .back-link { color: rgba(248,247,255,0.7); font-size: 0.875rem; }
     .back-link--hero {
       position: absolute; top: 1.5rem; left: 2rem; z-index: 2;
       background: rgba(13,13,20,0.5); backdrop-filter: blur(6px);
@@ -203,6 +220,16 @@ import { GuestMessage } from '../../../../shared/models/Message.model';
     }
     .event-actions { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
     .btn-sm { padding: 0.5rem 1rem; font-size: 0.875rem; }
+
+    /* ---- Plan y uso ---- */
+    .plan-summary { margin: 1.5rem 0; display: flex; flex-direction: column; gap: 0.6rem; }
+    .plan-badge {
+      display: inline-block; background: var(--pw-violet); color: var(--pw-cream);
+      border-radius: 100px; padding: 0.25rem 0.9rem; font-size: 0.75rem; font-weight: 700;
+      width: fit-content;
+    }
+    .usage-track { height: 6px; border-radius: 4px; background: rgba(248,247,255,0.1); overflow: hidden; margin-top: 0.3rem; }
+    .usage-fill { height: 100%; background: var(--pw-rose); transition: width 0.4s ease; }
 
     /* ---- QR panel ---- */
     .qr-panel { display: flex; gap: 3rem; flex-wrap: wrap; margin-bottom: 3rem; }
@@ -263,39 +290,54 @@ import { GuestMessage } from '../../../../shared/models/Message.model';
       font-size: 0.75rem; flex-shrink: 0;
       &:hover { background: rgba(226,75,74,0.28); }
     }
+
+    /* ---- Mensajes ---- */
     .messages-section { margin-top: 2.5rem; }
-.messages-header h3 { font-family: 'Syne', sans-serif; font-size: 1.2rem; margin-bottom: 1.5rem; }
-.messages-list { display: flex; flex-direction: column; gap: 0.75rem; }
-.message-row {
-  display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;
-  background: var(--pw-card-bg); border: 1px solid var(--pw-card-border);
-  border-radius: 12px; padding: 0.9rem 1.1rem;
-  transition: border-color 0.2s;
-  &:hover { border-color: rgba(124,58,237,0.35); }
-}
-.message-content { display: flex; align-items: flex-start; gap: 0.7rem; min-width: 0; }
-.message-content i { color: var(--pw-rose); margin-top: 0.2rem; flex-shrink: 0; }
-.message-author { font-size: 0.8rem; font-weight: 700; color: var(--pw-violet-light); }
-.message-text { margin: 0.15rem 0 0; font-size: 0.9rem; color: rgba(248,247,255,0.85); word-break: break-word; }
+    .messages-header h3 { font-family: 'Syne', sans-serif; font-size: 1.2rem; margin-bottom: 1.5rem; }
+    .messages-list { display: flex; flex-direction: column; gap: 0.75rem; }
+    .message-row {
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;
+      background: var(--pw-card-bg); border: 1px solid var(--pw-card-border);
+      border-radius: 12px; padding: 0.9rem 1.1rem;
+      transition: border-color 0.2s;
+      &:hover { border-color: rgba(124,58,237,0.35); }
+    }
+    .message-content { display: flex; align-items: flex-start; gap: 0.7rem; min-width: 0; }
+    .message-content i { color: var(--pw-rose); margin-top: 0.2rem; flex-shrink: 0; }
+    .message-author { font-size: 0.8rem; font-weight: 700; color: var(--pw-violet-light); }
+    .message-text { margin: 0.15rem 0 0; font-size: 0.9rem; color: rgba(248,247,255,0.85); word-break: break-word; }
   `]
 })
-export class EventDetailComponent implements OnInit {
-  private route    = inject(ActivatedRoute);
-  private evSvc    = inject(EventsService);
-  private photoSvc = inject(PhotosService);
+export class EventDetailComponent implements OnInit, OnDestroy {
+  private route       = inject(ActivatedRoute);
+  private evSvc        = inject(EventsService);
+  private photoSvc     = inject(PhotosService);
+  private messagesSvc  = inject(MessagesService);
+  private socketSvc    = inject(SocketService);
 
   event   = signal<PhotoWallEvent | null>(null);
   photos  = signal<Photo[]>([]);
   loading = signal(true);
   copied  = signal(false);
-
-
-  private messagesSvc = inject(MessagesService);
-  private socketSvc  = inject(SocketService);
   messages = signal<GuestMessage[]>([]);
   deletingMessageId = signal<string | null>(null);
+  togglingMessages = signal(false);
 
   guestUrl = () => `${window.location.origin}/e/${this.event()?.slug}`;
+
+  planLabel = computed(() => PLAN_LABELS[this.event()?.plan!] ?? 'Gratis');
+
+  photosUsagePercent = computed(() => {
+    const u = this.event()?.usage;
+    if (!u || u.maxPhotos === null) return 0;
+    return Math.min(100, (u.currentPhotos / u.maxPhotos) * 100);
+  });
+
+  messagesUsagePercent = computed(() => {
+    const u = this.event()?.usage;
+    if (!u || u.maxMessages === null) return 0;
+    return Math.min(100, (u.currentMessages / u.maxMessages) * 100);
+  });
 
   ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id') ?? '';
@@ -304,36 +346,25 @@ export class EventDetailComponent implements OnInit {
         this.event.set(ev);
         this.loading.set(false);
         this.photoSvc.getPhotosByEvent(ev._id).subscribe(photos => this.photos.set(photos));
-      this.messagesSvc.getMessagesByEvent(ev._id).subscribe(msgs => this.messages.set(msgs));
-this.socketSvc.joinEvent(ev._id);
-this.socketSvc.onNewMessage(msg => {
-  this.messages.update(list => [
-    { _id: msg._id, event: ev._id, authorName: msg.authorName, text: msg.text, createdAt: msg.createdAt },
-    ...list
-  ]);
-});
-this.socketSvc.onMessageDeleted(({ _id }) => {
-  this.messages.update(list => list.filter(m => m._id !== _id));
-});
+        this.messagesSvc.getMessagesByEvent(ev._id).subscribe(msgs => this.messages.set(msgs));
+        this.socketSvc.joinEvent(ev._id);
+        this.socketSvc.onNewMessage(msg => {
+          this.messages.update(list => [
+            { _id: msg._id, event: ev._id, authorName: msg.authorName, text: msg.text, createdAt: msg.createdAt },
+            ...list
+          ]);
+        });
+        this.socketSvc.onMessageDeleted(({ _id }) => {
+          this.messages.update(list => list.filter(m => m._id !== _id));
+        });
       },
       error: () => this.loading.set(false)
     });
   }
 
   ngOnDestroy() {
-  this.socketSvc.disconnect();
-}
-deleteMessage(id: string) {
-  if (!confirm('¿Eliminar este mensaje?')) return;
-  this.deletingMessageId.set(id);
-  this.messagesSvc.deleteMessage(id).subscribe({
-    next: () => {
-      this.messages.update(list => list.filter(m => m._id !== id));
-      this.deletingMessageId.set(null);
-    },
-    error: () => this.deletingMessageId.set(null)
-  });
-}
+    this.socketSvc.disconnect();
+  }
 
   copyLink() {
     navigator.clipboard.writeText(this.guestUrl()).then(() => {
@@ -349,19 +380,28 @@ deleteMessage(id: string) {
     });
   }
 
-  togglingMessages = signal(false);
-toggleMessages() {
-  const event = this.event();
-  if (!event) return;
-  this.togglingMessages.set(true);
-  this.evSvc.toggleMessages(event._id, !event.messagesEnabled).subscribe({
-    next: (res) => {
-      this.event.update(e => e ? { ...e, messagesEnabled: res.event.messagesEnabled } : e);
-      this.togglingMessages.set(false);
-    },
-    error: () => this.togglingMessages.set(false)
-  });
+  deleteMessage(id: string) {
+    if (!confirm('¿Eliminar este mensaje?')) return;
+    this.deletingMessageId.set(id);
+    this.messagesSvc.deleteMessage(id).subscribe({
+      next: () => {
+        this.messages.update(list => list.filter(m => m._id !== id));
+        this.deletingMessageId.set(null);
+      },
+      error: () => this.deletingMessageId.set(null)
+    });
+  }
 
-
-}
+  toggleMessages() {
+    const event = this.event();
+    if (!event) return;
+    this.togglingMessages.set(true);
+    this.evSvc.toggleMessages(event._id, !event.messagesEnabled).subscribe({
+      next: (res) => {
+        this.event.update(e => e ? { ...e, messagesEnabled: res.event.messagesEnabled } : e);
+        this.togglingMessages.set(false);
+      },
+      error: () => this.togglingMessages.set(false)
+    });
+  }
 }

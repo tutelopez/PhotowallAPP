@@ -18,6 +18,7 @@ import {
       seedDatabase 
     } from '../controller/Admin.controller';
 import { UserRole } from '../models/User.model';
+import { setEventPlan } from '../controller/Admin.controller';
 
 const router = Router();
 
@@ -41,6 +42,7 @@ router.delete('/events/:eventId', ensureAuth([UserRole.SUPER_ADMIN]), deleteEven
 router.delete('/organizers/:organizerId/events', ensureAuth([UserRole.SUPER_ADMIN]), deleteEventsByOrganizer);
 router.delete('/organizers/:organizerId', ensureAuth([UserRole.SUPER_ADMIN]), deleteOrganizer);
 router.delete('/reset-all', ensureAuth([UserRole.SUPER_ADMIN]), resetAllData);
+router.patch('/events/:eventId/plan', ensureAuth([UserRole.SUPER_ADMIN]), setEventPlan);
 
 
 //POBLAR BASE DE DATOS

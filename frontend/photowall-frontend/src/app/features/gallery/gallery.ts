@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
+import { Component,computed, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
@@ -69,16 +69,24 @@ import { MessagesService } from '../../core/services/messages';
               <span class="dot"></span> En vivo
             </div>
             <div class="upload-area">
+              @if (photosLimitReached()) {
+  <div class="limit-banner">
+    📸 Este evento alcanzó el límite de fotos de su plan. ¡Pero igual podés seguir disfrutando la galería!
+  </div>
+} @else {
               <input type="file" id="photo-upload" accept="image/*" multiple
                      (change)="onFileSelected($event)" hidden #fileInput>
               <button class="btn-pw-primary" (click)="fileInput.click()">
                 <i class="bi bi-camera"></i> Subir foto
-              </button>
+              </button>}
             </div>
           </div>
         </div>
 
         <div class="comment-section">
+          @if (messagesLimitReached()) {
+  <div class="limit-banner">💬 Se alcanzó el límite de mensajes de este evento.</div>
+} @else {
   <form [formGroup]="commentForm" (ngSubmit)="sendComment()" class="comment-form">
     <i class="bi bi-chat-heart"></i>
     <input type="text" formControlName="text" maxlength="200"
@@ -92,6 +100,8 @@ import { MessagesService } from '../../core/services/messages';
   @if (commentSent()) {
     <div class="comment-toast">¡Tu mensaje aparecerá en la pantalla! ✨</div>
   }
+}
+
 </div>
 
         <!-- Galería -->
@@ -254,6 +264,11 @@ import { MessagesService } from '../../core/services/messages';
       text-align: center; padding: 4rem 2rem;
       color: rgba(248,247,255,0.4);
     }
+    .limit-banner {
+  background: rgba(244,63,94,0.12); border: 1px solid rgba(244,63,94,0.35);
+  color: var(--pw-rose); border-radius: 12px; padding: 0.8rem 1rem;
+  font-size: 0.85rem; text-align: center; margin: 1rem 0;
+}
   `]
 })
 export class GalleryComponent implements OnInit, OnDestroy {
@@ -293,6 +308,15 @@ export class GalleryComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     if (this.pollInterval) clearInterval(this.pollInterval);
   }
+
+  photosLimitReached = computed(() => {
+  const u = this.event()?.usage;
+  return !!u && u.maxPhotos !== null && u.currentPhotos >= u.maxPhotos;
+});
+messagesLimitReached = computed(() => {
+  const u = this.event()?.usage;
+  return !!u && u.maxMessages !== null && u.currentMessages >= u.maxMessages;
+});
 
   join() {
     if (this.joinForm.invalid) return;
@@ -346,6 +370,9 @@ export class GalleryComponent implements OnInit, OnDestroy {
 commentForm = this.fb.nonNullable.group({
   text: ['', [Validators.required, Validators.maxLength(200)]]
 });
+
+
+
 sendingComment = signal(false);
 commentSent = signal(false);
 sendComment() {

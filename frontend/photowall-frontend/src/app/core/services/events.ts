@@ -60,6 +60,8 @@ export class EventsService {
         photoCount: res.photos?.length ?? 0,
         createdAt: '',
         updatedAt: '',
+        plan: res.event.plan,
+        usage: res.usage,
         messagesEnabled: res.event.messagesEnabled ?? true,
       }))
     );

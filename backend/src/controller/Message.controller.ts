@@ -20,9 +20,13 @@ export const createMessage = async (req: Request, res: Response) => {
       createdAt: newMessage.createdAt
     });
   } catch (error: any) {
-    res.status(400).json({ message: error.message || 'Error enviando el mensaje' });
+    res.status(error.status || 400).json({
+      message: error.message || 'Error enviando el mensaje',
+      code: error.code
+    });
   }
 };
+
 export const getMessagesByEvent = async (req: AuthRequest, res: Response) => {
   try {
     const { eventId } = req.params;

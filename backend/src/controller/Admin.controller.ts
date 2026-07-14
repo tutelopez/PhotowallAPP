@@ -7,9 +7,33 @@ import cloudinary from '../config/cloudinary';
 import slugify from 'slugify';
 import bcrypt from 'bcrypt';
 import { GuestModel } from '../models/Guest.model';
+import { PlanType } from '../models/Plan';
+
 
 const SUPER_ADMIN_SECRET = process.env.SUPER_ADMIN_SECRET;
 
+
+export const setEventPlan = async (req: Request, res: Response) => {
+  try {
+    const { eventId } = req.params;
+    const { plan } = req.body;
+    if (!Object.values(PlanType).includes(plan)) {
+      return res.status(400).json({ message: 'Plan inválido' });
+    }
+    const event = await EventModel.findByIdAndUpdate(
+      eventId,
+      { plan },
+      { new: true }
+    );
+    if (!event) {
+      return res.status(404).json({ message: 'Evento no encontrado' });
+    }
+    res.json({ message: `Plan actualizado a ${plan}`, event });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error actualizando el plan' });
+  }
+};
 
 export const createSuperAdmin = async (req: Request, res: Response) => {
   try {
