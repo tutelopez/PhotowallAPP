@@ -6,20 +6,45 @@ import { PhotosService } from '../../../../core/services/photos';
 import { Photo } from '../../../../shared/models/Photo.model';
 import { PhotoWallEvent } from '../../../../shared/models/Event.model';
 import { MessagesService } from '../../../../core/services/messages';
-import { SocketService } from '../../../../core/services/socket';
+import { SocketService, NewPhotoEvent, GuestJoinedEvent } from '../../../../core/services/socket';
 import { GuestMessage } from '../../../../shared/models/Message.model';
 import { PLAN_LABELS } from '../../../../shared/models/Plan.model';
-
+interface ActivityNotification {
+  id: string;
+  type: 'photo' | 'message' | 'guest';
+  title: string;
+  text: string;
+  leaving?: boolean;
+}
+const TOAST_DURATION = 6000;
+const TOAST_LEAVE_ANIM = 300;
+const MAX_ACTIVITY_LOG = 30;
 @Component({
   selector: 'app-event-detail',
   standalone: true,
   imports: [CommonModule, RouterLink],
   template: `
     <div class="detail-page">
+      <!-- Notificaciones en tiempo real -->
+      <div class="notif-stack" aria-live="polite">
+        @for (n of notifications(); track n.id) {
+          <div class="notif-toast" [class.notif-toast--leaving]="n.leaving">
+            <div class="notif-icon notif-icon--{{ n.type }}">
+              <i class="bi" [class.bi-camera-fill]="n.type === 'photo'" [class.bi-chat-heart-fill]="n.type === 'message'" [class.bi-person-plus-fill]="n.type === 'guest'"></i>
+            </div>
+            <div class="notif-body">
+              <strong>{{ n.title }}</strong>
+              <span>{{ n.text }}</span>
+            </div>
+            <button class="notif-close" (click)="dismissNotification(n.id)" title="Cerrar">
+              <i class="bi bi-x"></i>
+            </button>
+          </div>
+        }
+      </div>
       @if (loading()) {
         <div class="loading-state"><div class="pw-spinner"></div></div>
       }
-
       @if (event()) {
         <!-- Hero: portada + foto de perfil + título + fecha -->
         <div class="event-hero">
@@ -51,10 +76,42 @@ import { PLAN_LABELS } from '../../../../shared/models/Plan.model';
                 <i class="bi" [class.bi-chat-dots-fill]="event()!.messagesEnabled" [class.bi-chat-dots]="!event()!.messagesEnabled"></i>
                 {{ event()!.messagesEnabled ? 'Mensajes activados' : 'Mensajes desactivados' }}
               </button>
+              <div class="bell-wrapper">
+                <button class="btn-pw-ghost bell-btn" (click)="toggleActivityPanel()">
+                  <i class="bi bi-bell-fill"></i> Actividad
+                  @if (unreadCount() > 0) {
+                    <span class="bell-badge">{{ unreadCount() }}</span>
+                  }
+                </button>
+                @if (showActivityPanel()) {
+                  <div class="activity-panel">
+                    <div class="activity-panel-header">
+                      <span>Actividad reciente</span>
+                      @if (activityLog().length > 0) {
+                        <button class="activity-clear" (click)="clearActivity()">Limpiar</button>
+                      }
+                    </div>
+                    @if (activityLog().length === 0) {
+                      <p class="activity-empty">Sin actividad todavía.</p>
+                    } @else {
+                      @for (n of activityLog(); track n.id) {
+                        <div class="activity-item">
+                          <div class="notif-icon notif-icon--{{ n.type }}">
+                            <i class="bi" [class.bi-camera-fill]="n.type === 'photo'" [class.bi-chat-heart-fill]="n.type === 'message'" [class.bi-person-plus-fill]="n.type === 'guest'"></i>
+                          </div>
+                          <div class="notif-body">
+                            <strong>{{ n.title }}</strong>
+                            <span>{{ n.text }}</span>
+                          </div>
+                        </div>
+                      }
+                    }
+                  </div>
+                }
+              </div>
             </div>
           </div>
         </div>
-
         <div class="detail-inner">
           <div class="plan-summary">
             <span class="plan-badge">{{ planLabel() }}</span>
@@ -73,7 +130,6 @@ import { PLAN_LABELS } from '../../../../shared/models/Plan.model';
             <a href="https://wa.me/57XXXXXXXXXX?text=Quiero%20mejorar%20el%20plan%20de%20mi%20evento"
                target="_blank" class="btn-pw-ghost">Mejorar plan</a>
           </div>
-
           <div class="branding-section pw-card">
   <h4>Color del evento</h4>
   @if (event()!.usage?.branding) {
@@ -95,7 +151,6 @@ import { PLAN_LABELS } from '../../../../shared/models/Plan.model';
     </p>
   }
 </div>
-
           <!-- QR Panel -->
           <div class="qr-panel pw-card">
             <div class="qr-section">
@@ -134,7 +189,6 @@ import { PLAN_LABELS } from '../../../../shared/models/Plan.model';
               </div>
             </div>
           </div>
-
           <!-- Fotos -->
           <div class="photos-section">
             <div class="photos-header">
@@ -172,7 +226,6 @@ import { PLAN_LABELS } from '../../../../shared/models/Plan.model';
               </div>
             }
           </div>
-
           <!-- Mensajes -->
           <div class="messages-section">
             <div class="messages-header">
@@ -207,11 +260,77 @@ import { PLAN_LABELS } from '../../../../shared/models/Plan.model';
     </div>
   `,
   styles: [`
+  /* ---- Notificaciones toast ---- */
+  .notif-stack {
+    position: fixed; top: 1.25rem; right: 1.25rem; z-index: 200;
+    display: flex; flex-direction: column; gap: 0.6rem;
+    max-width: min(360px, calc(100vw - 2.5rem));
+  }
+  .notif-toast {
+    display: flex; align-items: flex-start; gap: 0.7rem;
+    background: var(--pw-card-bg, #14141c); border: 1px solid rgba(124,58,237,0.35);
+    border-radius: 12px; padding: 0.8rem 0.9rem;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.45);
+    animation: notif-in 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .notif-toast--leaving { animation: notif-out 0.3s ease forwards; }
+  @keyframes notif-in {
+    from { opacity: 0; transform: translateX(24px) scale(0.96); }
+    to   { opacity: 1; transform: translateX(0) scale(1); }
+  }
+  @keyframes notif-out {
+    from { opacity: 1; transform: translateX(0) scale(1); }
+    to   { opacity: 0; transform: translateX(24px) scale(0.96); }
+  }
+  .notif-icon {
+    width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 0.95rem;
+  }
+  .notif-icon--photo   { background: rgba(124,58,237,0.2); color: #A78BFA; }
+  .notif-icon--message { background: rgba(244,114,182,0.18); color: var(--pw-rose); }
+  .notif-icon--guest   { background: rgba(93,202,165,0.18); color: #5dcaa5; }
+  .notif-body { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
+  .notif-body strong { font-size: 0.85rem; color: var(--pw-cream); }
+  .notif-body span { font-size: 0.8rem; color: rgba(248,247,255,0.65); word-break: break-word; }
+  .notif-close {
+    background: none; border: none; color: rgba(248,247,255,0.4); cursor: pointer;
+    margin-left: auto; padding: 2px; line-height: 1; flex-shrink: 0;
+    &:hover { color: rgba(248,247,255,0.8); }
+  }
+  /* ---- Campana y panel de actividad ---- */
+  .bell-wrapper { position: relative; }
+  .bell-btn { position: relative; }
+  .bell-badge {
+    position: absolute; top: -6px; right: -6px;
+    background: var(--pw-rose); color: #1a0b14;
+    font-size: 0.65rem; font-weight: 800; line-height: 1;
+    min-width: 18px; height: 18px; border-radius: 999px;
+    display: flex; align-items: center; justify-content: center; padding: 0 4px;
+  }
+  .activity-panel {
+    position: absolute; top: calc(100% + 0.6rem); right: 0; z-index: 50;
+    width: 320px; max-height: 380px; overflow-y: auto;
+    background: var(--pw-card-bg, #14141c); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px; box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+    padding: 0.5rem;
+  }
+  .activity-panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.5rem 0.6rem 0.6rem; font-size: 0.8rem; font-weight: 700; color: rgba(248,247,255,0.6);
+  }
+  .activity-clear {
+    background: none; border: none; color: var(--pw-violet-light); font-size: 0.75rem; cursor: pointer;
+  }
+  .activity-empty { padding: 1rem 0.6rem; font-size: 0.85rem; color: rgba(248,247,255,0.4); text-align: center; margin: 0; }
+  .activity-item {
+    display: flex; align-items: flex-start; gap: 0.6rem;
+    padding: 0.55rem 0.6rem; border-radius: 8px;
+    &:hover { background: rgba(255,255,255,0.04); }
+  }
   .admin-photo-img video { width: 100%; height: 100%; object-fit: cover; display: block; }
     .detail-page { min-height: 100vh; background: var(--pw-ink); }
     .detail-inner { max-width: 960px; margin: 0 auto; padding: 0 2rem 4rem; }
     .loading-state { display: flex; justify-content: center; padding: 6rem 0; }
-
     /* ---- Hero ---- */
     .event-hero { position: relative; margin-bottom: 1rem; }
     .hero-cover {
@@ -255,7 +374,6 @@ import { PLAN_LABELS } from '../../../../shared/models/Plan.model';
     }
     .event-actions { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
     .btn-sm { padding: 0.5rem 1rem; font-size: 0.875rem; }
-
     /* ---- Plan y uso ---- */
     .plan-summary { margin: 1.5rem 0; display: flex; flex-direction: column; gap: 0.6rem; }
     .plan-badge {
@@ -265,7 +383,6 @@ import { PLAN_LABELS } from '../../../../shared/models/Plan.model';
     }
     .usage-track { height: 6px; border-radius: 4px; background: rgba(248,247,255,0.1); overflow: hidden; margin-top: 0.3rem; }
     .usage-fill { height: 100%; background: var(--pw-rose); transition: width 0.4s ease; }
-
     /* ---- QR panel ---- */
     .qr-panel { display: flex; gap: 3rem; flex-wrap: wrap; margin-bottom: 3rem; }
     .qr-section {
@@ -294,7 +411,6 @@ import { PLAN_LABELS } from '../../../../shared/models/Plan.model';
     .stat-value { font-family: 'Syne', sans-serif; font-size: 1.5rem; font-weight: 700; }
     .stat-label { color: rgba(248,247,255,0.4); font-size: 0.8rem; margin-top: 0.2rem; }
     .active-dot { color: #5dcaa5; }
-
     /* ---- Fotos ---- */
     .photos-header {
       display: flex; align-items: center; justify-content: space-between;
@@ -365,7 +481,6 @@ export class EventDetailComponent implements OnInit, OnDestroy {
   private photoSvc     = inject(PhotosService);
   private messagesSvc  = inject(MessagesService);
   private socketSvc    = inject(SocketService);
-
   event   = signal<PhotoWallEvent | null>(null);
   photos  = signal<Photo[]>([]);
   loading = signal(true);
@@ -377,24 +492,22 @@ export class EventDetailComponent implements OnInit, OnDestroy {
 brandingColor  = signal('#7C3AED');
 savingBranding = signal(false);
 brandingSaved  = signal(false);
-
-
+notifications = signal<ActivityNotification[]>([]);
+activityLog = signal<ActivityNotification[]>([]);
+unreadCount = signal(0);
+showActivityPanel = signal(false);
   guestUrl = () => `${window.location.origin}/e/${this.event()?.slug}`;
-
   planLabel = computed(() => PLAN_LABELS[this.event()?.plan!] ?? 'Gratis');
-
   photosUsagePercent = computed(() => {
     const u = this.event()?.usage;
     if (!u || u.maxPhotos === null) return 0;
     return Math.min(100, (u.currentPhotos / u.maxPhotos) * 100);
   });
-
   messagesUsagePercent = computed(() => {
     const u = this.event()?.usage;
     if (!u || u.maxMessages === null) return 0;
     return Math.min(100, (u.currentMessages / u.maxMessages) * 100);
   });
-
   ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id') ?? '';
     this.evSvc.getEventById(id).subscribe({
@@ -409,34 +522,67 @@ brandingSaved  = signal(false);
             { _id: msg._id, event: ev._id, authorName: msg.authorName, text: msg.text, createdAt: msg.createdAt },
             ...list
           ]);
+          this.pushNotification('message', 'Nuevo mensaje', `${msg.authorName}: "${msg.text}"`);
         });
         this.socketSvc.onMessageDeleted(({ _id }) => {
           this.messages.update(list => list.filter(m => m._id !== _id));
+        });
+        this.socketSvc.onNewPhoto((photo: NewPhotoEvent) => {
+          this.pushNotification(
+            'photo',
+            'Nueva foto',
+            `${photo.uploadedBy} subió ${photo.type === 'video' ? 'un video' : 'una foto'}`
+          );
+        });
+        this.socketSvc.onGuestJoined((guest: GuestJoinedEvent) => {
+          this.pushNotification('guest', 'Nuevo invitado', `${guest.name} se unió al evento`);
         });
         this.brandingColor.set(ev.branding?.accentColor || '#7C3AED');
       },
       error: () => this.loading.set(false)
     });
   }
-
   ngOnDestroy() {
     this.socketSvc.disconnect();
   }
-
+  private pushNotification(type: ActivityNotification['type'], title: string, text: string) {
+    const item: ActivityNotification = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, type, title, text };
+    this.notifications.update(list => [...list, item]);
+    this.activityLog.update(list => [item, ...list].slice(0, MAX_ACTIVITY_LOG));
+    if (!this.showActivityPanel()) {
+      this.unreadCount.update(n => n + 1);
+    }
+    setTimeout(() => this.dismissNotification(item.id), TOAST_DURATION);
+  }
+  dismissNotification(id: string) {
+    this.notifications.update(list =>
+      list.map(n => (n.id === id ? { ...n, leaving: true } : n))
+    );
+    setTimeout(() => {
+      this.notifications.update(list => list.filter(n => n.id !== id));
+    }, TOAST_LEAVE_ANIM);
+  }
+  toggleActivityPanel() {
+    this.showActivityPanel.update(v => !v);
+    if (this.showActivityPanel()) {
+      this.unreadCount.set(0);
+    }
+  }
+  clearActivity() {
+    this.activityLog.set([]);
+  }
   copyLink() {
     navigator.clipboard.writeText(this.guestUrl()).then(() => {
       this.copied.set(true);
       setTimeout(() => this.copied.set(false), 2000);
     });
   }
-
   deletePhoto(id: string) {
     if (!confirm('¿Eliminar esta foto?')) return;
     this.photoSvc.deletePhoto(id).subscribe(() => {
       this.photos.update(p => p.filter(ph => ph._id !== id));
     });
   }
-
   deleteMessage(id: string) {
     if (!confirm('¿Eliminar este mensaje?')) return;
     this.deletingMessageId.set(id);
@@ -448,7 +594,6 @@ brandingSaved  = signal(false);
       error: () => this.deletingMessageId.set(null)
     });
   }
-
   toggleMessages() {
     const event = this.event();
     if (!event) return;
@@ -461,7 +606,6 @@ brandingSaved  = signal(false);
       error: () => this.togglingMessages.set(false)
     });
   }
-
   downloadZip() {
     const event = this.event();
     if (!event) return;
@@ -479,7 +623,6 @@ brandingSaved  = signal(false);
       error: () => this.downloadingZip.set(false)
     });
   }
-
   onColorChange(e: Event) {
   const value = (e.target as HTMLInputElement).value;
   this.brandingColor.set(value);
@@ -498,6 +641,4 @@ saveBranding() {
     error: () => this.savingBranding.set(false)
   });
 }
-
-
 }
