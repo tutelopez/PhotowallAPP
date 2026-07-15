@@ -54,7 +54,10 @@ branding: {
       type: String,
       default: ''
     },
-
+archivedAt: {
+  type: Date,
+  default: null
+},
     profileImage: {
       type: String,
       default: ''
@@ -67,6 +70,7 @@ branding: {
 }
 
   },
+  
   { timestamps: true }
 );
 export const EventModel = model('Event', EventSchema);
