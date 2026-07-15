@@ -12,8 +12,11 @@ export interface Photo {
   createdAt: string;
 
   updatedAt: string;
+
+    type: 'image' | 'video';
+  duration?: number | null;
 }
- 
+
 /**
  * DTO para subir una foto.
  * Se convertirá a FormData en PhotosService.

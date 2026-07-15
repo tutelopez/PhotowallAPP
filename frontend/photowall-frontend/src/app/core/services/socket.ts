@@ -7,6 +7,8 @@ export interface NewPhotoEvent {
   uploadedBy: string;
   imageUrl: string;
   createdAt: string;
+  type: 'image' | 'video';
+  duration?: number | null;
 }
 
 export interface NewMessageEvent {

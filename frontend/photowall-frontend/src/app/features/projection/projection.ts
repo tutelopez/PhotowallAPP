@@ -29,7 +29,8 @@ interface Spark {
 
 const SLIDE_DURATION = 6000;
 const CROSSFADE_DURATION = 1800;
-const MESSAGE_DURATION = SLIDE_DURATION * 2; // 12000ms — el doble que una foto
+const MESSAGE_DURATION = SLIDE_DURATION * 2;
+const MAX_VIDEO_SECONDS = 30;
 
 @Component({
   selector: 'app-projection',
@@ -64,14 +65,17 @@ const MESSAGE_DURATION = SLIDE_DURATION * 2; // 12000ms — el doble que una fot
 
       <!-- Escenario de fotos -->
       <div class="proj-stage">
-        @for (slide of slides(); track slide.key) {
-          <div class="proj-slide"
-               [class.proj-slide--visible]="slide.visible"
-               [class.proj-slide--zoom-in]="slide.zoomIn"
-               [class.proj-slide--zoom-out]="!slide.zoomIn"
-               [style.backgroundImage]="'url(' + slide.photo.imageUrl + ')'">
-          </div>
-        }
+       @for (slide of slides(); track slide.key) {
+  <div class="proj-slide"
+       [class.proj-slide--visible]="slide.visible"
+       [class.proj-slide--zoom-in]="slide.zoomIn"
+       [class.proj-slide--zoom-out]="!slide.zoomIn"
+       [style.backgroundImage]="slide.photo.type === 'video' ? null : 'url(' + slide.photo.imageUrl + ')'">
+    @if (slide.photo.type === 'video') {
+      <video class="proj-slide-video" [src]="slide.photo.imageUrl" autoplay muted playsinline></video>
+    }
+  </div>
+}
 
         @if (currentSlide(); as cs) {
           <div class="proj-credit" [class.proj-credit--visible]="cs.visible">
@@ -108,6 +112,12 @@ const MESSAGE_DURATION = SLIDE_DURATION * 2; // 12000ms — el doble que una fot
       position: relative;
       overflow: hidden;
     }
+
+    .proj-slide-video {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+}
 
       .comment-bubble {
   position: absolute; top: 2.2rem; left: 50%;
@@ -263,7 +273,7 @@ export class ProjectionComponent implements OnInit, OnDestroy {
   private eventId = '';
   private currentIndex = -1;
   private lastZoomIn = false;
-  private slideTimer?: ReturnType<typeof setInterval>;
+  private slideTimer?: ReturnType<typeof setTimeout>;
   private pollTimer?: ReturnType<typeof setInterval>;
 
   ngOnInit() {
@@ -351,80 +361,76 @@ private processMessageQueue() {
 
   /** Llega por socket cuando un invitado sube una foto nueva */
   private handleNewPhoto(payload: NewPhotoEvent) {
-    if (this.photos().some(p => p._id === payload._id)) return; // evita duplicados
-
-    const photo: Photo = {
-      _id: payload._id,
-      event: this.eventId,
-      uploadedBy: payload.uploadedBy,
-      imageUrl: payload.imageUrl,
-      publicId: '',
-      createdAt: payload.createdAt,
-      updatedAt: payload.createdAt
-    };
-
-    const wasEmpty = this.photos().length === 0;
-    this.photos.update(list => [...list, photo]);
-
-    if (wasEmpty) {
-      this.startSlideshow();
-      return;
-    }
-
-    // Interrumpe el ciclo actual y muestra la foto nueva de inmediato
-    this.advance(photo);
-    this.restartTimer();
+  if (this.photos().some(p => p._id === payload._id)) return;
+  const photo: Photo = {
+    _id: payload._id,
+    event: this.eventId,
+    uploadedBy: payload.uploadedBy,
+    imageUrl: payload.imageUrl,
+    publicId: '',
+    createdAt: payload.createdAt,
+    updatedAt: payload.createdAt,
+    type: payload.type,
+    duration: payload.duration
+  };
+  const wasEmpty = this.photos().length === 0;
+  this.photos.update(list => [...list, photo]);
+  if (wasEmpty) {
+    this.startSlideshow();
+    return;
   }
+  this.advance(photo);
+}
 
-  private startSlideshow() {
-    this.advance();
-    this.restartTimer();
-  }
+
 activeComment = signal<CommentBubble | null>(null);
 messagesEnabled = signal(true);
 private messageQueue: CommentBubble[] = [];
 private showingMessage = false;
 
-  private restartTimer() {
-    if (this.slideTimer) clearInterval(this.slideTimer);
-    this.slideTimer = setInterval(() => this.advance(), SLIDE_DURATION);
+private startSlideshow() {
+  this.advance();
+}
+
+private scheduleNext(photo: Photo) {
+  if (this.slideTimer) clearTimeout(this.slideTimer);
+  const duration =
+    photo.type === 'video'
+      ? Math.min(photo.duration ?? MAX_VIDEO_SECONDS, MAX_VIDEO_SECONDS) * 1000 + 500
+      : SLIDE_DURATION;
+  this.slideTimer = setTimeout(() => this.advance(), duration);
+}
+
+private advance(forcedPhoto?: Photo) {
+  const photos = this.photos();
+  if (!photos.length) return;
+  let photo: Photo;
+  if (forcedPhoto) {
+    photo = forcedPhoto;
+    this.currentIndex = photos.findIndex(p => p._id === forcedPhoto._id);
+  } else {
+    this.currentIndex = (this.currentIndex + 1) % photos.length;
+    photo = photos[this.currentIndex];
   }
+  this.lastZoomIn = !this.lastZoomIn;
+  const slide: Slide = {
+    key: `${photo._id}-${Date.now()}`,
+    photo,
+    zoomIn: this.lastZoomIn,
+    visible: false
+  };
+  this.slides.update(list => [...list, slide]);
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    this.slides.update(list =>
+      list.map(s => (s.key === slide.key ? { ...s, visible: true } : s))
+    );
+  }));
+  setTimeout(() => {
+    this.slides.update(list => list.filter(s => s.key === slide.key));
+  }, CROSSFADE_DURATION + 150);
+  this.scheduleNext(photo);
+}
 
-  private advance(forcedPhoto?: Photo) {
-    const photos = this.photos();
-    if (!photos.length) return;
-
-    let photo: Photo;
-    if (forcedPhoto) {
-      photo = forcedPhoto;
-      this.currentIndex = photos.findIndex(p => p._id === forcedPhoto._id);
-    } else {
-      this.currentIndex = (this.currentIndex + 1) % photos.length;
-      photo = photos[this.currentIndex];
-    }
-
-    this.lastZoomIn = !this.lastZoomIn;
-
-    const slide: Slide = {
-      key: `${photo._id}-${Date.now()}`,
-      photo,
-      zoomIn: this.lastZoomIn,
-      visible: false
-    };
-
-    this.slides.update(list => [...list, slide]);
-
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      this.slides.update(list =>
-        list.map(s => (s.key === slide.key ? { ...s, visible: true } : s))
-      );
-    }));
-
-    setTimeout(() => {
-      this.slides.update(list => list.filter(s => s.key === slide.key));
-    }, CROSSFADE_DURATION + 150);
-  }
-  
 private handleMessageDeleted(id: string) {
   this.messageQueue = this.messageQueue.filter(m => !m.key.startsWith(id));
   const current = this.activeComment();
@@ -436,7 +442,8 @@ private handleMessageDeleted(id: string) {
     }, 700);
   }
 }
-  private generateSparks(count: number): Spark[] {
+
+private generateSparks(count: number): Spark[] {
     const hues: Spark['hue'][] = ['violet', 'rose', 'cream'];
     return Array.from({ length: count }, () => {
       const left = Math.random() * 100;

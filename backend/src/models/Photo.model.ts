@@ -8,7 +8,7 @@ const PhotoSchema = new Schema(
       required: true
     },
     uploadedBy: {
-      type: String, // nombre del invitado o organizer
+      type: String,
       required: true
     },
     imageUrl: {
@@ -18,6 +18,15 @@ const PhotoSchema = new Schema(
     publicId: {
       type: String,
       required: true
+    },
+    type: {
+      type: String,
+      enum: ['image', 'video'],
+      default: 'image'
+    },
+    duration: {
+      type: Number,
+      default: null
     }
   },
   { timestamps: true }

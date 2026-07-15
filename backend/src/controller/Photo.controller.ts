@@ -30,11 +30,13 @@ export const uploadPhoto = async (req: Request, res: Response) => {
       photo
     });
     io.to(`event_${eventId}`).emit('new-photo', {
-      _id: photo._id,
-      uploadedBy: photo.uploadedBy,
-      imageUrl: photo.imageUrl,
-      createdAt: photo.createdAt
-    });
+  _id: photo._id,
+  uploadedBy: photo.uploadedBy,
+  imageUrl: photo.imageUrl,
+  createdAt: photo.createdAt,
+  type: photo.type,
+  duration: photo.duration
+});
   } catch (error: any) {
     console.error(error);
     res.status(error.status || 400).json({

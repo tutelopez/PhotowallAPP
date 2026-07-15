@@ -74,11 +74,14 @@ import { MessagesService } from '../../core/services/messages';
     📸 Este evento alcanzó el límite de fotos de su plan. ¡Pero igual podés seguir disfrutando la galería!
   </div>
 } @else {
-              <input type="file" id="photo-upload" accept="image/*" multiple
-                     (change)="onFileSelected($event)" hidden #fileInput>
+              <input type="file" id="photo-upload" accept="image/*,video/*" multiple
+       (change)="onFileSelected($event)" hidden #fileInput>
               <button class="btn-pw-primary" (click)="fileInput.click()">
                 <i class="bi bi-camera"></i> Subir foto
               </button>}
+              @if (videoTooLong()) {
+  <div class="limit-banner">🎥 El video supera los 30 segundos permitidos.</div>
+}
             </div>
           </div>
         </div>
@@ -107,18 +110,22 @@ import { MessagesService } from '../../core/services/messages';
         <!-- Galería -->
         <div class="photo-grid">
           @for (photo of photos(); track photo._id) {
-            <div class="grid-photo">
-              <div class="photo-img-wrap">
-                <img [src]="photo.imageUrl"
-                     [alt]="'Foto de ' + photo.uploadedBy"
-                     loading="lazy">
-              </div>
-              <div class="photo-caption">
-                <i class="bi bi-person-circle"></i>
-                <span>Subido por: <strong>{{ photo.uploadedBy }}</strong></span>
-              </div>
-            </div>
-          }
+  <div class="grid-photo">
+    <div class="photo-img-wrap">
+      @if (photo.type === 'video') {
+        <video [src]="photo.imageUrl" controls muted playsinline></video>
+      } @else {
+        <img [src]="photo.imageUrl"
+             [alt]="'Foto de ' + photo.uploadedBy"
+             loading="lazy">
+      }
+    </div>
+    <div class="photo-caption">
+      <i class="bi" [class.bi-person-circle]="photo.type !== 'video'" [class.bi-camera-reels]="photo.type === 'video'"></i>
+      <span>Subido por: <strong>{{ photo.uploadedBy }}</strong></span>
+    </div>
+  </div>
+}
           @if (photos().length === 0) {
             <div class="no-photos">
               <p>Sé el primero en subir una foto 📸</p>
@@ -269,6 +276,7 @@ import { MessagesService } from '../../core/services/messages';
   color: var(--pw-rose); border-radius: 12px; padding: 0.8rem 1rem;
   font-size: 0.85rem; text-align: center; margin: 1rem 0;
 }
+.photo-img-wrap video { width: 100%; display: block; background: #000; }
   `]
 })
 export class GalleryComponent implements OnInit, OnDestroy {
@@ -284,6 +292,7 @@ export class GalleryComponent implements OnInit, OnDestroy {
   loading = signal(true);
   joiningLoading = signal(false);
   hasSession = signal(false);
+  videoTooLong = signal(false);
 
   joinForm = this.fb.nonNullable.group({
     name: ['', Validators.required]
@@ -340,18 +349,45 @@ messagesLimitReached = computed(() => {
   }
 
   onFileSelected(event: globalThis.Event) {
-    const input = event.target as HTMLInputElement;
-    if (!input.files?.length) return;
-    const session = this.guestService.getSession(this.slug());
-    if (!session) return;
-    Array.from(input.files).forEach(file => {
-      this.photosService
-        .uploadPhoto(session.eventId, session.guestId, file)
-        .subscribe({
-          next: () => this.loadPhotos()
-        });
+  const input = event.target as HTMLInputElement;
+  if (!input.files?.length) return;
+  const session = this.guestService.getSession(this.slug());
+  if (!session) return;
+  Array.from(input.files).forEach(file => {
+    if (file.type.startsWith('video/')) {
+      this.validateVideoDuration(file).then(ok => {
+        if (!ok) {
+          this.videoTooLong.set(true);
+          setTimeout(() => this.videoTooLong.set(false), 4000);
+          return;
+        }
+        this.uploadFile(session, file);
+      });
+    } else {
+      this.uploadFile(session, file);
+    }
+  });
+  input.value = '';
+}
+private uploadFile(session: { eventId: string; guestId: string }, file: File) {
+  this.photosService
+    .uploadPhoto(session.eventId, session.guestId, file)
+    .subscribe({
+      next: () => this.loadPhotos()
     });
-  }
+}
+private validateVideoDuration(file: File): Promise<boolean> {
+  return new Promise(resolve => {
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.onloadedmetadata = () => {
+      window.URL.revokeObjectURL(video.src);
+      resolve(video.duration <= 30);
+    };
+    video.onerror = () => resolve(false);
+    video.src = URL.createObjectURL(file);
+  });
+}
 
   private loadPhotos() {
     if (!this.event()) return;

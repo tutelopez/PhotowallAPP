@@ -133,7 +133,11 @@ import { PLAN_LABELS } from '../../../../shared/models/Plan.model';
                 @for (photo of photos(); track photo._id) {
                   <div class="admin-photo">
                     <div class="admin-photo-img">
-                      <img [src]="photo.imageUrl" [alt]="'Foto de ' + photo.uploadedBy" loading="lazy">
+                      @if (photo.type === 'video') {
+                        <video [src]="photo.imageUrl" controls muted playsinline></video>
+                      } @else {
+                        <img [src]="photo.imageUrl" [alt]="'Foto de ' + photo.uploadedBy" loading="lazy">
+                      }
                     </div>
                     <div class="admin-photo-caption">
                       <span><i class="bi bi-person-circle"></i> Subido por: <strong>{{ photo.uploadedBy }}</strong></span>
@@ -181,6 +185,7 @@ import { PLAN_LABELS } from '../../../../shared/models/Plan.model';
     </div>
   `,
   styles: [`
+  .admin-photo-img video { width: 100%; height: 100%; object-fit: cover; display: block; }
     .detail-page { min-height: 100vh; background: var(--pw-ink); }
     .detail-inner { max-width: 960px; margin: 0 auto; padding: 0 2rem 4rem; }
     .loading-state { display: flex; justify-content: center; padding: 6rem 0; }
