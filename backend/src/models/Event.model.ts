@@ -43,6 +43,12 @@ plan: {
   enum: Object.values(PlanType),
   default: PlanType.FREE
 },
+branding: {
+  accentColor: {
+    type: String,
+    default: '#7C3AED'
+  }
+},
 
     coverImage: {
       type: String,

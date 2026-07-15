@@ -78,7 +78,9 @@ export const getEventBySlug = async (slug: string) => {
   if (!event) return null;
   const plan = (event.plan as PlanType) || PlanType.FREE;
   const usage = await getUsage(event._id.toString(), plan);
-  return { ...event, plan, usage };
+    const branding = event.branding || { accentColor: '#7C3AED' };
+
+  return { ...event, plan, usage, branding };
 };
 
 export const getEventsByOrganizer = async (organizerId: string) => {
@@ -140,6 +142,7 @@ const usage = await getUsage(eventId, event.plan as PlanType);
       organizer: event.organizer,
       plan: event.plan,
       messagesEnabled: event.messagesEnabled,
+      branding: event.branding || { accentColor: '#7C3AED' },
     },
 
     guests: {
@@ -220,6 +223,34 @@ export const toggleMessages = async (
     throw new Error('Evento no encontrado o no autorizado');
   }
   event.messagesEnabled = enabled;
+  await event.save();
+  return event;
+};
+
+export const updateBranding = async (
+  eventId: string,
+  organizerId: string,
+  accentColor: string
+) => {
+  const event = await EventModel.findOne({ _id: eventId, organizer: organizerId });
+  if (!event) {
+    const err: any = new Error('Evento no encontrado o no autorizado');
+    err.status = 403;
+    throw err;
+  }
+  const limits = PLAN_LIMITS[event.plan as PlanType] ?? PLAN_LIMITS[PlanType.FREE];
+  if (!limits.branding) {
+    const err: any = new Error('Tu plan actual no incluye personalización de colores');
+    err.status = 403;
+    err.code = 'BRANDING_NOT_INCLUDED';
+    throw err;
+  }
+  if (!/^#[0-9A-Fa-f]{6}$/.test(accentColor)) {
+    const err: any = new Error('El color debe ser un código hexadecimal válido, ej: #7C3AED');
+    err.status = 400;
+    throw err;
+  }
+  event.branding = { accentColor };
   await event.save();
   return event;
 };

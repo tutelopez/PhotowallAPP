@@ -14,7 +14,7 @@ import { MessagesService } from '../../core/services/messages';
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   template: `
-    <div class="gallery-page">
+   <div class="gallery-page" [style.--pw-violet]="accentColor()">
       <!-- Join modal -->
       @if (!hasSession() && !loading()) {
         <div class="join-overlay">
@@ -326,6 +326,7 @@ messagesLimitReached = computed(() => {
   const u = this.event()?.usage;
   return !!u && u.maxMessages !== null && u.currentMessages >= u.maxMessages;
 });
+accentColor = computed(() => this.event()?.branding?.accentColor || null);
 
   join() {
     if (this.joinForm.invalid) return;

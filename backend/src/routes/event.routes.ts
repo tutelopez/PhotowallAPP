@@ -41,6 +41,8 @@ router.patch(
   EventController.toggleMessages
 );
 
+router.patch('/:eventId/branding', ensureAuth([UserRole.ORGANIZER]), EventController.updateBranding);
+
 // ⚠️ SIEMPRE AL FINAL
 router.get('/:slug', controller.getBySlug);
 

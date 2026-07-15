@@ -51,6 +51,10 @@ export class SocketService {
     socket.on('disconnect', () => callback(false));
   }
 
+  onBrandingUpdated(callback: (payload: { accentColor: string }) => void) {
+  this.connect().on('branding-updated', callback);
+}
+
   disconnect() {
     this.socket?.disconnect();
     this.socket = null;

@@ -74,6 +74,28 @@ import { PLAN_LABELS } from '../../../../shared/models/Plan.model';
                target="_blank" class="btn-pw-ghost">Mejorar plan</a>
           </div>
 
+          <div class="branding-section pw-card">
+  <h4>Color del evento</h4>
+  @if (event()!.usage?.branding) {
+    <div class="branding-picker">
+      <input type="color" [value]="brandingColor()" (input)="onColorChange($event)" class="color-input">
+      <span class="color-hex">{{ brandingColor() }}</span>
+      <button class="btn-pw-primary btn-sm" (click)="saveBranding()" [disabled]="savingBranding()">
+        {{ savingBranding() ? 'Guardando…' : 'Guardar color' }}
+      </button>
+      @if (brandingSaved()) {
+        <span class="comment-sent">✓ Guardado</span>
+      }
+    </div>
+    <p class="branding-hint">Este color se aplicará a los botones y acentos de la galería y la proyección.</p>
+  } @else {
+    <p class="branding-locked">
+      🔒 La personalización de colores está disponible desde el plan Estándar.
+      <a href="https://wa.me/57XXXXXXXXXX?text=Quiero%20mejorar%20mi%20plan" target="_blank">Mejorar plan</a>
+    </p>
+  }
+</div>
+
           <!-- QR Panel -->
           <div class="qr-panel pw-card">
             <div class="qr-section">
@@ -307,7 +329,19 @@ import { PLAN_LABELS } from '../../../../shared/models/Plan.model';
       font-size: 0.75rem; flex-shrink: 0;
       &:hover { background: rgba(226,75,74,0.28); }
     }
-
+.branding-section { margin: 1.5rem 0; padding: 1.25rem 1.5rem; }
+.branding-section h4 { font-family: 'Syne', sans-serif; font-size: 1rem; margin: 0 0 0.75rem; }
+.branding-picker { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+.color-input {
+  width: 44px; height: 44px; border: none; border-radius: 10px;
+  cursor: pointer; background: transparent; padding: 0;
+}
+.color-hex { font-family: monospace; font-size: 0.85rem; color: rgba(248,247,255,0.6); }
+.branding-hint { font-size: 0.8rem; color: rgba(248,247,255,0.45); margin: 0.75rem 0 0; }
+.branding-locked {
+  font-size: 0.85rem; color: rgba(248,247,255,0.6); margin: 0;
+  a { color: var(--pw-violet-light); margin-left: 0.3rem; }
+}
     /* ---- Mensajes ---- */
     .messages-section { margin-top: 2.5rem; }
     .messages-header h3 { font-family: 'Syne', sans-serif; font-size: 1.2rem; margin-bottom: 1.5rem; }
@@ -340,6 +374,10 @@ export class EventDetailComponent implements OnInit, OnDestroy {
   deletingMessageId = signal<string | null>(null);
   togglingMessages = signal(false);
   downloadingZip = signal(false);
+brandingColor  = signal('#7C3AED');
+savingBranding = signal(false);
+brandingSaved  = signal(false);
+
 
   guestUrl = () => `${window.location.origin}/e/${this.event()?.slug}`;
 
@@ -375,6 +413,7 @@ export class EventDetailComponent implements OnInit, OnDestroy {
         this.socketSvc.onMessageDeleted(({ _id }) => {
           this.messages.update(list => list.filter(m => m._id !== _id));
         });
+        this.brandingColor.set(ev.branding?.accentColor || '#7C3AED');
       },
       error: () => this.loading.set(false)
     });
@@ -440,4 +479,25 @@ export class EventDetailComponent implements OnInit, OnDestroy {
       error: () => this.downloadingZip.set(false)
     });
   }
+
+  onColorChange(e: Event) {
+  const value = (e.target as HTMLInputElement).value;
+  this.brandingColor.set(value);
+}
+saveBranding() {
+  const event = this.event();
+  if (!event) return;
+  this.savingBranding.set(true);
+  this.evSvc.updateBranding(event._id, this.brandingColor()).subscribe({
+    next: (res) => {
+      this.event.update(e => e ? { ...e, branding: res.event.branding } : e);
+      this.savingBranding.set(false);
+      this.brandingSaved.set(true);
+      setTimeout(() => this.brandingSaved.set(false), 2000);
+    },
+    error: () => this.savingBranding.set(false)
+  });
+}
+
+
 }

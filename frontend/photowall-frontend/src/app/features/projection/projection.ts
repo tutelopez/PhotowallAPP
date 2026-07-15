@@ -37,7 +37,7 @@ const MAX_VIDEO_SECONDS = 30;
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="projection-view">
+    <div class="projection-view" [style.--pw-violet]="accentColor()">
 
       <!-- Header -->
       <div class="proj-header">
@@ -269,6 +269,7 @@ export class ProjectionComponent implements OnInit, OnDestroy {
     const list = this.slides();
     return list.length ? list[list.length - 1] : null;
   });
+  accentColor = computed(() => this.event()?.branding?.accentColor || null);
 
   private eventId = '';
   private currentIndex = -1;
@@ -295,6 +296,9 @@ export class ProjectionComponent implements OnInit, OnDestroy {
       // Carga inicial + respaldo por si el socket se desconecta
       this.loadPhotos(ev._id);
       this.pollTimer = setInterval(() => this.loadPhotos(ev._id), 20000);
+      this.socketService.onBrandingUpdated(({ accentColor }) => {
+  this.event.update(e => (e ? { ...e, branding: { accentColor } } : e));
+});
 
     });
   }

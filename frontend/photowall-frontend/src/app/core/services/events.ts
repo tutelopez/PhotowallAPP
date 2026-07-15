@@ -62,6 +62,7 @@ export class EventsService {
         updatedAt: '',
         plan: res.event.plan,
         usage: res.usage,
+        branding: res.event.branding ?? { accentColor: '#7C3AED' },
         messagesEnabled: res.event.messagesEnabled ?? true,
       }))
     );
@@ -78,4 +79,13 @@ toggleMessages(eventId: string, enabled: boolean) {
     { enabled }
   );
 }
+
+updateBranding(eventId: string, accentColor: string) {
+  return this.http.patch<{ message: string; event: PhotoWallEvent }>(
+    `${this.base}/${eventId}/branding`,
+    { accentColor }
+  );
+}
+
+
 }

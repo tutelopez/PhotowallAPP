@@ -132,3 +132,21 @@ export const toggleMessages = async (req: Request, res: Response) => {
     res.status(400).json({ message: error.message || 'Error actualizando mensajes' });
   }
 };
+
+export const updateBranding = async (req: Request, res: Response) => {
+  try {
+    const { eventId } = req.params;
+    const organizerId = (req as any).user.userId;
+    const { accentColor } = req.body;
+    if (!accentColor) {
+      return res.status(400).json({ message: 'accentColor es obligatorio' });
+    }
+    const event = await EventService.updateBranding(eventId, organizerId, accentColor);
+    res.json({ message: 'Color actualizado correctamente', event });
+   io.to(`event_${eventId}`).emit('branding-updated', {
+  accentColor: event.branding?.accentColor ?? '#7C3AED'
+});
+  } catch (error: any) {
+    res.status(error.status || 400).json({ message: error.message, code: error.code });
+  }
+};

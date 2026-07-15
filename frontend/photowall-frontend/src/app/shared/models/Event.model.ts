@@ -17,5 +17,6 @@ export interface PhotoWallEvent {
   updatedAt: string;
   messagesEnabled: boolean;
   plan: PlanType;
+  branding?: { accentColor: string };
 usage?: PlanUsage;
 }
