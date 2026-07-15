@@ -55,4 +55,5 @@ io.on('connection', (socket) => {
     console.log('Cliente desconectado:', socket.id);
   });
 });
+export { server };
 export default app;
