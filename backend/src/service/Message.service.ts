@@ -3,6 +3,8 @@ import { UserModel, UserRole } from '../models/User.model';
 import { MessageModel } from '../models/Message.model';
 import { EventModel } from '../models/Event.model';
 import { assertMessageLimit } from './Limits.service';
+import { filterText } from '../config/wordFilter';
+
 
 export const createMessage = async (
   eventId: string,
@@ -17,20 +19,28 @@ export const createMessage = async (
   if (!guest) {
     throw new Error('Invitado no encontrado');
   }
-  const clean = (text || '').trim();
-  if (!clean) {
+  const raw = (text || '').trim();
+  if (!raw) {
     throw new Error('El mensaje no puede estar vacío');
   }
-  if (clean.length > 200) {
+  if (raw.length > 200) {
     throw new Error('El mensaje es demasiado largo (máx. 200 caracteres)');
+  }
+  const { blocked, cleaned } = filterText(raw);
+  if (blocked) {
+    const err: any = new Error('Tu mensaje contiene contenido no permitido');
+    err.status = 400;
+    err.code = 'MESSAGE_BLOCKED';
+    throw err;
   }
   return await MessageModel.create({
     event: eventId,
     authorName: guest.name,
-    text: clean
+    text: cleaned
   });
 };
 export const getMessagesByEvent = async (eventId: string, organizerId: string) => {
+  const { EventModel } = await import('../models/Event.model');
   const event = await EventModel.findOne({ _id: eventId, organizer: organizerId });
   if (!event) {
     const err: any = new Error('Evento no encontrado o no autorizado');
@@ -40,6 +50,7 @@ export const getMessagesByEvent = async (eventId: string, organizerId: string) =
   return await MessageModel.find({ event: eventId }).sort({ createdAt: -1 });
 };
 export const deleteMessage = async (messageId: string, organizerId: string) => {
+  const { EventModel } = await import('../models/Event.model');
   const msg = await MessageModel.findById(messageId);
   if (!msg) {
     const err: any = new Error('Mensaje no encontrado');

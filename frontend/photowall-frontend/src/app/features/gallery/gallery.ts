@@ -103,6 +103,9 @@ import { MessagesService } from '../../core/services/messages';
   @if (commentSent()) {
     <div class="comment-toast">¡Tu mensaje aparecerá en la pantalla! ✨</div>
   }
+  @if (commentError()) {
+  <div class="limit-banner">{{ commentError() }}</div>
+}
 }
 
 </div>
@@ -293,6 +296,7 @@ export class GalleryComponent implements OnInit, OnDestroy {
   joiningLoading = signal(false);
   hasSession = signal(false);
   videoTooLong = signal(false);
+  commentError = signal<string | null>(null);
 
   joinForm = this.fb.nonNullable.group({
     name: ['', Validators.required]
@@ -427,7 +431,11 @@ sendComment() {
         this.commentSent.set(true);
         setTimeout(() => this.commentSent.set(false), 2500);
       },
-      error: () => this.sendingComment.set(false)
+     error: (err) => {
+  this.sendingComment.set(false);
+  this.commentError.set(err?.error?.message || 'No se pudo enviar el mensaje');
+  setTimeout(() => this.commentError.set(null), 4000);
+}
     });
 }
 }
