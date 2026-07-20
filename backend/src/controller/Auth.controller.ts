@@ -3,8 +3,9 @@ import { UserModel, UserRole } from '../models/User.model';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import * as UserService from '../service/User.service';
-
+import { sendWelcomeEmail } from '../service/Email.service';
 import { generateToken } from '../utils/jwt';
+
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecret';
 const SALT_ROUNDS = 10;
 
@@ -28,7 +29,7 @@ export const registerUser = async (req: Request, res: Response) => {
       user,
       token
    });
-
+sendWelcomeEmail({ name: user.name, email: user.email });
 }
 // ------------------------
 // LOGIN DE ORGANIZER O GUEST (FORM LOGIN)

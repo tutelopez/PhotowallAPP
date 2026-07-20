@@ -11,6 +11,12 @@ export interface PlanLimits {
   watermark: boolean;
   branding: boolean;
 }
+export const PLAN_LABELS: Record<PlanType, string> = {
+  [PlanType.FREE]: 'Gratis',
+  [PlanType.ESENCIAL]: 'Esencial',
+  [PlanType.ESTANDAR]: 'Estándar',
+  [PlanType.PREMIUM]: 'Premium'
+};
 export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
   [PlanType.FREE]: {
     maxPhotos: 25,

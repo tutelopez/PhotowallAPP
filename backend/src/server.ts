@@ -4,11 +4,14 @@ import { connectDB } from './config/db';
 import dotenv from 'dotenv';
 import { checkEnv } from './config/env.check';
 import { startCleanupJob } from './jobs/cleanup.job';
+import { verifyMailer } from './config/mailer';
+
 const PORT = process.env.PORT || 3000;
 dotenv.config();
 async function main() {
   await connectDB();
   await checkEnv();
+  await verifyMailer();
   server.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
     startCleanupJob();

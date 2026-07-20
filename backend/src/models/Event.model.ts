@@ -67,7 +67,11 @@ archivedAt: {
         type: Schema.Types.ObjectId,
         ref: 'User',
         required: true
-}
+},
+reminderSentAt: {
+  type: Date,
+  default: null
+},
 
   },
   

@@ -3,6 +3,8 @@ import { EventModel } from '../models/Event.model';
 import { PhotoModel } from '../models/Photo.model';
 import { MessageModel } from '../models/Message.model';
 import { PLAN_LIMITS, PlanType } from '../models/Plan';
+import { sendExpirationReminderEmail } from './Email.service';
+import { UserModel } from '../models/User.model';
 
 export const cleanupExpiredGalleries = async () => {
   const now = Date.now();
@@ -40,4 +42,36 @@ export const cleanupExpiredGalleries = async () => {
     console.log(`✅ Limpieza completada: ${archivedCount} evento(s) archivado(s)`);
   }
   return archivedCount;
+};
+
+const REMINDER_DAYS_BEFORE = 3;
+
+export const sendExpirationReminders = async () => {
+  const now = Date.now();
+  const events = await EventModel.find({ isActive: true, reminderSentAt: null });
+  let sentCount = 0;
+  for (const event of events) {
+    const plan = (event.plan as PlanType) || PlanType.FREE;
+    const limits = PLAN_LIMITS[plan] ?? PLAN_LIMITS[PlanType.FREE];
+    const galleryDays = limits.galleryDays;
+    if (galleryDays === null) continue;
+    const anchorDate = new Date(event.date).getTime();
+    const expiresAt = anchorDate + galleryDays * 24 * 60 * 60 * 1000;
+    const daysLeft = Math.ceil((expiresAt - now) / (24 * 60 * 60 * 1000));
+    if (daysLeft <= 0 || daysLeft > REMINDER_DAYS_BEFORE) continue;
+    const organizer = await UserModel.findById(event.organizer);
+    if (!organizer) continue;
+    await sendExpirationReminderEmail(
+      { name: organizer.name, email: organizer.email },
+      { name: event.name, slug: event.slug },
+      daysLeft
+    );
+    (event as any).reminderSentAt = new Date();
+    await event.save();
+    sentCount++;
+  }
+  if (sentCount > 0) {
+    console.log(`📧 ${sentCount} recordatorio(s) de vencimiento enviado(s)`);
+  }
+  return sentCount;
 };

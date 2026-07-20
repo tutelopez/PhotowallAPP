@@ -8,6 +8,7 @@ import slugify from 'slugify';
 import bcrypt from 'bcrypt';
 import { GuestModel } from '../models/Guest.model';
 import { PlanType } from '../models/Plan';
+import { sendPlanThankYouEmail } from '../service/Email.service';
 
 
 const SUPER_ADMIN_SECRET = process.env.SUPER_ADMIN_SECRET;
@@ -29,6 +30,15 @@ export const setEventPlan = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Evento no encontrado' });
     }
     res.json({ message: `Plan actualizado a ${plan}`, event });
+    if (plan !== PlanType.FREE) {
+      const organizer = await UserModel.findById(event.organizer);
+      if (organizer) {
+        sendPlanThankYouEmail(
+          { name: organizer.name, email: organizer.email },
+          { name: event.name, slug: event.slug, plan: event.plan as PlanType }
+        );
+      }
+    }
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Error actualizando el plan' });
