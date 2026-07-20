@@ -2,11 +2,12 @@ import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
+import { GoogleSigninButtonComponent } from '../../../../shared/components/google-signin-button/google-signin-button';
 
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, GoogleSigninButtonComponent],
   template: `
     <div class="auth-page">
       <div class="auth-card">
@@ -42,6 +43,9 @@ import { AuthService } from '../../../../core/services/auth.service';
             @if (loading()) { Creando cuenta… } @else { Crear cuenta gratis }
           </button>
         </form>
+  <div class="auth-divider"><span>o regístrate con</span></div>
+        <app-google-signin-button (credential)="onGoogleCredential($event)"></app-google-signin-button>
+
 
         <p class="auth-footer">
           ¿Ya tienes cuenta?
@@ -90,6 +94,14 @@ import { AuthService } from '../../../../core/services/auth.service';
       text-align: center; margin-top: 1.5rem; font-size: 0.875rem;
       color: rgba(248,247,255,0.5);
       a { color: #A78BFA; margin-left: 0.25rem; }
+    }
+     .auth-divider {
+      display: flex; align-items: center; gap: 0.75rem;
+      margin: 1.5rem 0;
+      color: rgba(248,247,255,0.4); font-size: 0.8rem;
+    }
+    .auth-divider::before, .auth-divider::after {
+      content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.12);
     }
   `]
 })
@@ -144,5 +156,18 @@ submit() {
     });
 
 }
+
+onGoogleCredential(credential: string) {
+    this.loading.set(true);
+    this.error.set('');
+    this.auth.loginWithGoogle(credential).subscribe({
+      next: () => this.router.navigate(['/dashboard']),
+      error: err => {
+        this.error.set(err.error?.message ?? 'No fue posible registrarte con Google');
+        this.loading.set(false);
+      },
+      complete: () => this.loading.set(false)
+    });
+  }
 
 }

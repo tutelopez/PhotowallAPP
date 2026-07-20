@@ -103,4 +103,19 @@ getToken(): string | null {
   return this.storage.get<string>(STORAGE_KEYS.TOKEN);
 }
 
+loginWithGoogle(credential: string): Observable<AuthResult> {
+  return this.http.post<any>(`${this.base}/google`, { credential }).pipe(
+    tap(res => {
+      this.authState.setUser(res.user);
+      this.storage.set(STORAGE_KEYS.USER, res.user);
+      this.storage.set(STORAGE_KEYS.TOKEN, res.token);
+    }),
+    map(res => ({
+      success: true,
+      message: res.message,
+      user: res.user
+    }))
+  );
+}
+
 }

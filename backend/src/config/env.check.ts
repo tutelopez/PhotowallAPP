@@ -5,7 +5,14 @@ const requiredEnvs = [
   'CLOUDINARY_URL',
   'SUPER_ADMIN_SECRET',
   'NODE_ENV',
-  'JWT_SECRET'
+  'JWT_SECRET',
+  'GOOGLE_CLIENT_ID',
+  'SMTP_HOST',
+  'SMTP_PORT',
+  'SMTP_USER',
+  'SMTP_PASS',
+  'SMTP_FROM_NAME',
+  'FRONTEND_URL' 
 ];
 export const checkEnv = async () => {
   console.log('🔍 Verificando variables de entorno...');

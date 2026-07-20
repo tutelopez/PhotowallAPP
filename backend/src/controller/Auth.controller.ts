@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import * as UserService from '../service/User.service';
 import { sendWelcomeEmail } from '../service/Email.service';
 import { generateToken } from '../utils/jwt';
+import { verifyGoogleToken } from '../utils/googleAuth'; // 👈 nuevo
 
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecret';
 const SALT_ROUNDS = 10;
@@ -65,4 +66,32 @@ export const loginUser = async (req: Request, res: Response) => {
   }
 };
 
+export const googleAuth = async (req: Request, res: Response) => {
+  try {
+    const { credential } = req.body;
+    if (!credential) {
+      return res.status(400).json({ message: 'credential es obligatorio' });
+    }
 
+    const profile = await verifyGoogleToken(credential);
+    if (!profile.emailVerified) {
+      return res.status(401).json({ message: 'El email de Google no está verificado' });
+    }
+
+    const isNewUser = !(await UserModel.exists({
+      $or: [{ googleId: profile.googleId }, { email: profile.email }]
+    }));
+
+    const user = await UserService.findOrCreateGoogleOrganizer(profile);
+    const token = generateToken({ userId: user._id, role: user.role });
+
+    if (isNewUser) {
+      sendWelcomeEmail({ name: user.name, email: user.email });
+    }
+
+    res.json({ message: 'Login con Google exitoso', token, user });
+  } catch (error: any) {
+    console.error('🔴 ERROR GOOGLE AUTH:', error);
+    res.status(401).json({ message: error.message || 'Error autenticando con Google' });
+  }
+};

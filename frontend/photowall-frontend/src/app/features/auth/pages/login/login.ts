@@ -2,11 +2,12 @@ import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
+import { GoogleSigninButtonComponent } from '../../../../shared/components/google-signin-button/google-signin-button';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, GoogleSigninButtonComponent],
   template: `
     <div class="auth-page">
       <div class="auth-card">
@@ -36,7 +37,11 @@ import { AuthService } from '../../../../core/services/auth.service';
                   [disabled]="loading() || form.invalid">
             @if (loading()) { Entrando… } @else { Iniciar sesión }
           </button>
+
         </form>
+        
+        <div class="auth-divider"><span>o continúa con</span></div>
+        <app-google-signin-button (credential)="onGoogleCredential($event)"></app-google-signin-button>
 
         <p class="auth-footer">
           ¿No tienes cuenta?
@@ -99,6 +104,14 @@ import { AuthService } from '../../../../core/services/auth.service';
       color: rgba(248,247,255,0.5);
       a { color: #A78BFA; margin-left: 0.25rem; }
     }
+    .auth-divider {
+      display: flex; align-items: center; gap: 0.75rem;
+      margin: 1.5rem 0;
+      color: rgba(248,247,255,0.4); font-size: 0.8rem;
+    }
+    .auth-divider::before, .auth-divider::after {
+      content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.12);
+    }
   `]
 })
 export class LoginComponent {
@@ -151,4 +164,18 @@ submit() {
     });
 
 }
+
+onGoogleCredential(credential: string) {
+    this.loading.set(true);
+    this.error.set('');
+    this.auth.loginWithGoogle(credential).subscribe({
+      next: () => this.router.navigate(['/dashboard']),
+      error: err => {
+        this.error.set(err.error?.message ?? 'Error al iniciar sesión con Google');
+        this.loading.set(false);
+      },
+      complete: () => this.loading.set(false)
+    });
+  }
+
 }

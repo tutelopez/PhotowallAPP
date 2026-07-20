@@ -35,7 +35,10 @@ const UserSchema = new Schema(
     password: {
       type: String,
       required: false
-    }
+    },
+    googleId: { type: String, required: false, unique: true, sparse: true }, // 👈 google auth
+    authProvider: { type: String, enum: ['local', 'google'], default: 'local' } // 👈 google auth
+ 
   },
   { timestamps: true }
 );
