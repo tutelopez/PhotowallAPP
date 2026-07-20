@@ -21,9 +21,20 @@ import { PhotoWallEvent as Event } from '../../../../shared/models/Event.model';
         </div>
 
         @if (loading()) {
-          <div class="loading-state">
-            <div class="pw-spinner"></div>
-          </div>
+          <div class="events-grid">
+    @for (i of skeletonItems; track i) {
+      <div class="event-card pw-card skeleton-card">
+        <div class="skel-badge shimmer"></div>
+        <div class="skel-title shimmer"></div>
+        <div class="skel-date shimmer"></div>
+        <div class="skel-stats shimmer"></div>
+        <div class="skel-actions">
+          <div class="skel-btn shimmer"></div>
+          <div class="skel-btn shimmer"></div>
+        </div>
+      </div>
+    }
+  </div>
         } @else if (events().length === 0) {
           <div class="empty-state">
             <div class="empty-icon">📸</div>
@@ -110,6 +121,29 @@ import { PhotoWallEvent as Event } from '../../../../shared/models/Event.model';
     .event-actions { display: flex; gap: 0.75rem; align-items: center; margin-top: 0.5rem; }
     .btn-sm { padding: 0.5rem 1rem; font-size: 0.875rem; }
     .link-sm { color: rgba(248,247,255,0.5); font-size: 0.8rem; }
+    @keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.shimmer {
+  background: linear-gradient(90deg,
+    var(--pw-card-bg) 25%,
+    rgba(255,255,255,0.08) 50%,
+    var(--pw-card-bg) 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite linear;
+  border-radius: 6px;
+}
+.skeleton-card {
+  cursor: default;
+  &:hover { transform: none; border-color: var(--pw-card-border); }
+}
+.skel-badge  { width: 70px; height: 20px; border-radius: 100px; }
+.skel-title  { width: 70%; height: 22px; }
+.skel-date   { width: 50%; height: 14px; }
+.skel-stats  { width: 90%; height: 14px; margin-top: 0.25rem; }
+.skel-actions { display: flex; gap: 0.75rem; margin-top: 0.5rem; }
+.skel-actions .skel-btn { width: 90px; height: 32px; border-radius: 100px; }
   `]
 })
 export class DashboardComponent implements OnInit {
@@ -118,6 +152,7 @@ export class DashboardComponent implements OnInit {
 
   events  = signal<Event[]>([]);
   loading = signal(true);
+  skeletonItems = [0, 1, 2];
 
  ngOnInit() {
 

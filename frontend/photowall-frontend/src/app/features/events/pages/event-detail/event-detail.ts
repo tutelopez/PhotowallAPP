@@ -43,7 +43,18 @@ const MAX_ACTIVITY_LOG = 30;
         }
       </div>
       @if (loading()) {
-        <div class="loading-state"><div class="pw-spinner"></div></div>
+         <!-- Skeleton de toda la página -->
+  <div class="hero-skeleton shimmer"></div>
+  <div class="detail-inner">
+    <div class="skel-block skel-plan shimmer"></div>
+    <div class="skel-block skel-branding shimmer"></div>
+    <div class="skel-block skel-qr shimmer"></div>
+    <div class="admin-photo-grid">
+      @for (i of skeletonPhotos; track i) {
+        <div class="admin-photo skeleton-photo shimmer"></div>
+      }
+    </div>
+  </div>
       }
       @if (event()) {
         <!-- Hero: portada + foto de perfil + título + fecha -->
@@ -214,14 +225,22 @@ const MAX_ACTIVITY_LOG = 30;
 </button>
               }
             </div>
-            @if (photos().length === 0) {
-              <div class="no-photos-yet">
-                <p>Aún no hay fotos. Cuando los invitados empiecen a subir, aparecerán aquí.</p>
-              </div>
-            } @else {
-              <div class="admin-photo-grid">
-                @for (photo of photos(); track photo._id) {
-                  <div class="admin-photo">
+
+
+           @if (loadingPhotos()) {
+  <div class="admin-photo-grid">
+    @for (i of skeletonPhotos; track i) {
+      <div class="admin-photo skeleton-photo shimmer"></div>
+    }
+  </div>
+} @else if (photos().length === 0) {
+  <div class="no-photos-yet">
+    <p>Aún no hay fotos. Cuando los invitados empiecen a subir, aparecerán aquí.</p>
+  </div>
+} @else {
+  <div class="admin-photo-grid">
+    @for (photo of photos(); track photo._id) {
+      <div class="admin-photo">
                     <div class="admin-photo-img">
                       @if (photo.type === 'video') {
                         <video [src]="photo.imageUrl" controls muted playsinline></video>
@@ -245,14 +264,22 @@ const MAX_ACTIVITY_LOG = 30;
             <div class="messages-header">
               <h3>Mensajes de invitados ({{ messages().length }})</h3>
             </div>
-            @if (messages().length === 0) {
-              <div class="no-photos-yet">
-                <p>Aún no hay mensajes. Aparecerán aquí en cuanto los invitados escriban desde la galería.</p>
-              </div>
-            } @else {
-              <div class="messages-list">
-                @for (msg of messages(); track msg._id) {
-                  <div class="message-row">
+
+            -
+           @if (loadingMessages()) {
+  <div class="messages-list">
+    @for (i of skeletonMessages; track i) {
+      <div class="message-row skeleton-message shimmer"></div>
+    }
+  </div>
+} @else if (messages().length === 0) {
+  <div class="no-photos-yet">
+    <p>Aún no hay mensajes. Aparecerán aquí en cuanto los invitados escriban desde la galería.</p>
+  </div>
+} @else {
+  <div class="messages-list">
+    @for (msg of messages(); track msg._id) {
+      <div class="message-row">
                     <div class="message-content">
                       <i class="bi bi-chat-heart-fill"></i>
                       <div>
@@ -489,8 +516,31 @@ const MAX_ACTIVITY_LOG = 30;
     .message-text { margin: 0.15rem 0 0; font-size: 0.9rem; color: rgba(248,247,255,0.85); word-break: break-word; }
     .qr-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; justify-content: center; }
     .qr-error { align-items: center; justify-content: center; width: 100%; height: 100%; color: rgba(248,247,255,0.5); font-size: 0.75rem; text-align: center; padding: 0.5rem; }
+    @keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.shimmer {
+  background: linear-gradient(90deg,
+    var(--pw-card-bg) 25%,
+    rgba(255,255,255,0.08) 50%,
+    var(--pw-card-bg) 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite linear;
+  border-radius: 12px;
+}
+.hero-skeleton { height: 280px; }
+.skel-block { border-radius: 16px; margin: 1.5rem 0; }
+.skel-plan { height: 90px; }
+.skel-branding { height: 110px; }
+.skel-qr { height: 220px; }
+.skeleton-photo { aspect-ratio: 1; }
+.skeleton-message { height: 60px; border: 1px solid var(--pw-card-border); }
  `]
 })
+
+
+
 export class EventDetailComponent implements OnInit, OnDestroy {
   private route       = inject(ActivatedRoute);
   private evSvc        = inject(EventsService);
@@ -513,6 +563,10 @@ activityLog = signal<ActivityNotification[]>([]);
 unreadCount = signal(0);
 showActivityPanel = signal(false);
 regeneratingQr = signal(false);
+loadingPhotos = signal(true);      // 👈 nuevo
+loadingMessages = signal(true);    // 👈 nuevo
+skeletonPhotos = [0, 1, 2, 3, 4, 5];   // 👈 nuevo
+skeletonMessages = [0, 1, 2];          // 👈 nuevo
 
   guestUrl = () => `${window.location.origin}/e/${this.event()?.slug}`;
   planLabel = computed(() => PLAN_LABELS[this.event()?.plan!] ?? 'Gratis');
@@ -532,8 +586,14 @@ regeneratingQr = signal(false);
       next: (ev) => {
         this.event.set(ev);
         this.loading.set(false);
-        this.photoSvc.getPhotosByEvent(ev._id).subscribe(photos => this.photos.set(photos));
-        this.messagesSvc.getMessagesByEvent(ev._id).subscribe(msgs => this.messages.set(msgs));
+      this.photoSvc.getPhotosByEvent(ev._id).subscribe({
+  next: (photos) => { this.photos.set(photos); this.loadingPhotos.set(false); },
+  error: () => this.loadingPhotos.set(false)
+});
+this.messagesSvc.getMessagesByEvent(ev._id).subscribe({
+  next: (msgs) => { this.messages.set(msgs); this.loadingMessages.set(false); },
+  error: () => this.loadingMessages.set(false)
+});
         this.socketSvc.joinEvent(ev._id);
         this.socketSvc.onNewMessage(msg => {
           this.messages.update(list => [
