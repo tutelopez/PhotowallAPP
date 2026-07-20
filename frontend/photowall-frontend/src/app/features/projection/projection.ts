@@ -6,7 +6,13 @@ import { EventsService } from '../../core/services/events';
 import { SocketService, NewPhotoEvent } from '../../core/services/socket';
 import { PhotoWallEvent } from '../../shared/models/Event.model';
 import { Photo } from '../../shared/models/Photo.model';
-import { NewMessageEvent, MessagesToggleEvent } from '../../core/services/socket';
+import { NewMessageEvent, MessagesToggleEvent, EmojiFloatEvent } from '../../core/services/socket';
+
+interface FloatingEmoji {
+  id: string;
+  emoji: string;
+  style: string;
+}
 
 interface CommentBubble {
   key: string;
@@ -98,6 +104,12 @@ const MAX_VIDEO_SECONDS = 30;
             <p>Los invitados pueden escanear el QR del evento para empezar a subir fotos</p>
           </div>
         }
+        <!-- Emojis flotantes de los invitados -->
+        <div class="emoji-field" aria-hidden="true">
+          @for (e of floatingEmojis(); track e.id) {
+            <span class="floating-emoji" [attr.style]="e.style">{{ e.emoji }}</span>
+          }
+        </div>
       </div>
     </div>
   `,
@@ -249,6 +261,26 @@ const MAX_VIDEO_SECONDS = 30;
       h2 { font-family: 'Syne', sans-serif; font-size: 2rem; margin: 0; }
       p { color: rgba(248,247,255,0.5); max-width: 400px; margin: 0; line-height: 1.65; }
     }
+    .emoji-field {
+      position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 16;
+    }
+      .floating-emoji {
+      position: absolute;
+      bottom: -10%;
+      line-height: 1;
+      opacity: 0;
+      will-change: transform, opacity;
+      animation-name: emoji-rise;
+      animation-timing-function: cubic-bezier(0.22, 0.61, 0.36, 1);
+      animation-fill-mode: forwards;
+      filter: drop-shadow(0 4px 14px rgba(0,0,0,0.35));
+    }
+    @keyframes emoji-rise {
+      0%   { transform: translate(0, 0) scale(0.6) rotate(0deg); opacity: 0; }
+      10%  { opacity: 1; transform: translate(0, -8vh) scale(1) rotate(var(--rot)); }
+      85%  { opacity: 1; }
+      100% { transform: translate(var(--drift), -108vh) scale(1) rotate(calc(var(--rot) * -1)); opacity: 0; }
+    }
   `]
 })
 export class ProjectionComponent implements OnInit, OnDestroy {
@@ -262,6 +294,7 @@ export class ProjectionComponent implements OnInit, OnDestroy {
   slides = signal<Slide[]>([]);
   isFullscreen   = signal(false);
   liveConnected  = signal(false);
+   floatingEmojis = signal<FloatingEmoji[]>([]);
 
   sparks: Spark[] = this.generateSparks(42);
 
@@ -293,6 +326,7 @@ export class ProjectionComponent implements OnInit, OnDestroy {
       this.socketService.onNewMessage(msg => this.handleNewMessage(msg));
       this.socketService.onMessageDeleted(({ _id }) => this.handleMessageDeleted(_id));
       this.socketService.onMessagesToggle(payload => this.messagesEnabled.set(payload.enabled));
+      this.socketService.onEmojiFloat(payload => this.handleEmojiFloat(payload));
       // Carga inicial + respaldo por si el socket se desconecta
       this.loadPhotos(ev._id);
       this.pollTimer = setInterval(() => this.loadPhotos(ev._id), 20000);
@@ -462,4 +496,25 @@ private generateSparks(count: number): Spark[] {
       return { hue, style };
     });
   }
+
+  private handleEmojiFloat(payload: EmojiFloatEvent) {
+  const left = 4 + Math.random() * 92;
+  const size = 2 + Math.random() * 1.6;
+  const duration = 5 + Math.random() * 4;
+  const drift = Math.round((Math.random() - 0.5) * 220);
+  const rot = Math.round((Math.random() - 0.5) * 50);
+  const delay = Math.random() * 0.15;
+  const style =
+    `left:${left}%; font-size:${size}rem; ` +
+    `animation-duration:${duration}s; animation-delay:${delay}s; ` +
+    `--drift:${drift}px; --rot:${rot}deg;`;
+  const item: FloatingEmoji = { id: payload.id || `${Date.now()}-${Math.random()}`, emoji: payload.emoji, style };
+  this.floatingEmojis.update(list => {
+    const next = [...list, item];
+    return next.length > 60 ? next.slice(next.length - 60) : next;
+  });
+  setTimeout(() => {
+    this.floatingEmojis.update(list => list.filter(e => e.id !== item.id));
+  }, (duration + delay) * 1000 + 200);
+}
 }

@@ -8,6 +8,7 @@ import { EventsService } from '../../core/services/events';
 import { PhotoWallEvent } from '../../shared/models/Event.model';
 import { Photo } from '../../shared/models/Photo.model';
 import { MessagesService } from '../../core/services/messages';
+import { SocketService } from '../../core/services/socket';
 
 @Component({
   selector: 'app-gallery',
@@ -107,7 +108,13 @@ import { MessagesService } from '../../core/services/messages';
   <div class="limit-banner">{{ commentError() }}</div>
 }
 }
-
+ <div class="emoji-bar">
+    @for (e of emojiOptions; track e) {
+      <button type="button" class="emoji-btn" (click)="sendEmoji(e)" [class.emoji-btn--pop]="lastEmojiSent() === e">
+        {{ e }}
+      </button>
+    }
+  </div>
 </div>
 
         <!-- Galería -->
@@ -233,6 +240,24 @@ import { MessagesService } from '../../core/services/messages';
   color: var(--pw-cream); font-size: 0.9rem;
   &::placeholder { color: rgba(248,247,255,0.35); }
 }
+.emoji-bar {
+  display: flex; justify-content: center; flex-wrap: wrap; gap: 0.5rem;
+  margin-top: 0.85rem;
+}
+.emoji-btn {
+  background: var(--pw-card-bg); border: 1px solid var(--pw-card-border);
+  border-radius: 14px; width: 46px; height: 46px; font-size: 1.4rem;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+  &:hover { background: rgba(124,58,237,0.18); transform: translateY(-2px); }
+  &:active { transform: scale(0.9); }
+}
+.emoji-btn--pop { animation: emoji-btn-pop 0.4s ease; }
+@keyframes emoji-btn-pop {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
 .comment-send {
   background: var(--pw-violet); color: var(--pw-cream); border: none;
   width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
@@ -288,7 +313,10 @@ export class GalleryComponent implements OnInit, OnDestroy {
   private photosService = inject(PhotosService);
   private eventsService = inject(EventsService);
   private fb            = inject(FormBuilder);
+  private socketService = inject(SocketService);
 
+  emojiOptions = ['❤️', '😂', '🎉', '🔥', '👏', '😍', '🥳', '👍'];
+  lastEmojiSent = signal<string | null>(null);
   slug    = signal('');
   event   = signal<PhotoWallEvent | null>(null);
   photos  = signal<Photo[]>([]);
@@ -437,5 +465,15 @@ sendComment() {
   setTimeout(() => this.commentError.set(null), 4000);
 }
     });
+}
+
+sendEmoji(emoji: string) {
+  const session = this.guestService.getSession(this.slug());
+  if (!session) return;
+  this.socketService.sendEmoji(session.eventId, emoji);
+  this.lastEmojiSent.set(emoji);
+  setTimeout(() => {
+    if (this.lastEmojiSent() === emoji) this.lastEmojiSent.set(null);
+  }, 400);
 }
 }

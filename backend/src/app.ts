@@ -45,15 +45,33 @@ export const io = new Server(server, {
     methods: ['GET', 'POST']
   }
 });
+const ALLOWED_EMOJIS = ['❤️', '😂', '🎉', '🔥', '👏', '😍', '🥳', '👍'];
+const lastEmojiAt = new Map<string, number>();
+const EMOJI_COOLDOWN_MS = 250;
 io.on('connection', (socket) => {
   console.log('Nuevo cliente conectado:', socket.id);
   socket.on('join-event', (eventId: string) => {
     socket.join(`event_${eventId}`);
     console.log(`Cliente ${socket.id} unido a sala event_${eventId}`);
   });
+  socket.on('send-emoji', (payload: { eventId?: string; emoji?: string }) => {
+    const eventId = payload?.eventId;
+    const emoji = payload?.emoji;
+    if (!eventId || typeof eventId !== 'string') return;
+    if (!emoji || !ALLOWED_EMOJIS.includes(emoji)) return;
+    const now = Date.now();
+    const last = lastEmojiAt.get(socket.id) || 0;
+    if (now - last < EMOJI_COOLDOWN_MS) return;
+    lastEmojiAt.set(socket.id, now);
+    io.to(`event_${eventId}`).emit('emoji-float', {
+      emoji,
+      id: `${socket.id}-${now}`
+    });
+  });
   socket.on('disconnect', () => {
     console.log('Cliente desconectado:', socket.id);
   });
+  
 });
 export { server };
 export default app;

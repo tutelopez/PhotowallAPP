@@ -23,6 +23,10 @@ export interface GuestJoinedEvent {
   name: string;
   joinedAt: string;
 }
+export interface EmojiFloatEvent {
+  emoji: string;
+  id: string;
+}
 @Injectable({ providedIn: 'root' })
 export class SocketService {
   private socket: Socket | null = null;
@@ -64,5 +68,11 @@ onMessageDeleted(callback: (payload: { _id: string }) => void) {
 }
 onGuestJoined(callback: (guest: GuestJoinedEvent) => void) {
   this.connect().on('guest-joined', callback);
+}
+sendEmoji(eventId: string, emoji: string) {
+  this.connect().emit('send-emoji', { eventId, emoji });
+}
+onEmojiFloat(callback: (payload: EmojiFloatEvent) => void) {
+  this.connect().on('emoji-float', callback);
 }
 }
