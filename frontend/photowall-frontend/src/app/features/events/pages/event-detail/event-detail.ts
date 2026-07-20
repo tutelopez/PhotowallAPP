@@ -265,7 +265,7 @@ const MAX_ACTIVITY_LOG = 30;
               <h3>Mensajes de invitados ({{ messages().length }})</h3>
             </div>
 
-            -
+            
            @if (loadingMessages()) {
   <div class="messages-list">
     @for (i of skeletonMessages; track i) {
