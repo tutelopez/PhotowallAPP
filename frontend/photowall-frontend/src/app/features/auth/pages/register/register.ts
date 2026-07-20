@@ -39,13 +39,22 @@ import { GoogleSigninButtonComponent } from '../../../../shared/components/googl
           </div>
 
           <button type="submit" class="btn-pw-primary w-full"
-                  [disabled]="loading() || form.invalid">
-            @if (loading()) { Creando cuenta… } @else { Crear cuenta gratis }
-          </button>
+        [disabled]="loading() || form.invalid">
+  @if (loading()) {
+    <span class="pw-spinner-sm"></span> Creando cuenta…
+  } @else {
+    Crear cuenta gratis
+  }
+</button>
         </form>
   <div class="auth-divider"><span>o regístrate con</span></div>
-        <app-google-signin-button (credential)="onGoogleCredential($event)"></app-google-signin-button>
-
+       @if (loading()) {
+  <div class="google-btn-loading">
+    <span class="pw-spinner-sm"></span> Conectando con Google…
+  </div>
+} @else {
+  <app-google-signin-button (credential)="onGoogleCredential($event)"></app-google-signin-button>
+}
 
         <p class="auth-footer">
           ¿Ya tienes cuenta?
@@ -103,6 +112,12 @@ import { GoogleSigninButtonComponent } from '../../../../shared/components/googl
     .auth-divider::before, .auth-divider::after {
       content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.12);
     }
+    .google-btn-loading {
+  display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+  height: 40px; /* misma altura aprox. que el botón de Google (size: large) */
+  color: rgba(248,247,255,0.65);
+  font-size: 0.9rem;
+}
   `]
 })
 export class RegisterComponent {

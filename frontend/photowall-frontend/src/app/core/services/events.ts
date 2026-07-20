@@ -87,5 +87,11 @@ updateBranding(eventId: string, accentColor: string) {
   );
 }
 
+regenerateQR(eventId: string) {
+  return this.http.patch<{ message: string; event: PhotoWallEvent }>(
+    `${this.base}/${eventId}/regenerate-qr`,
+    {}
+  );
+}
 
 }

@@ -150,3 +150,14 @@ export const updateBranding = async (req: Request, res: Response) => {
     res.status(error.status || 400).json({ message: error.message, code: error.code });
   }
 };
+
+export const regenerateQR = async (req: Request, res: Response) => {
+  try {
+    const { eventId } = req.params;
+    const organizerId = (req as any).user.userId;
+    const event = await EventService.regenerateQR(eventId, organizerId);
+    res.json({ message: 'QR regenerado correctamente', event });
+  } catch (error: any) {
+    res.status(400).json({ message: error.message || 'Error regenerando QR' });
+  }
+};

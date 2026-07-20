@@ -153,18 +153,29 @@ const MAX_ACTIVITY_LOG = 30;
 </div>
           <!-- QR Panel -->
           <div class="qr-panel pw-card">
-            <div class="qr-section">
-              <h3>Código QR del evento</h3>
-              <p>Comparte este QR con tus invitados para que puedan subir fotos</p>
-              <div class="qr-placeholder">
-                <img [src]="event()!.qrCode" alt="QR del evento"
-                     onerror="this.src='https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=test'">
-              </div>
-              <a [href]="event()!.qrCode" download="qr-{{ event()!.slug }}.png"
-                 class="btn-pw-ghost btn-sm">
-                <i class="bi bi-download"></i> Descargar QR
-              </a>
-            </div>
+
+          <div class="qr-section">
+  <h3>Código QR del evento</h3>
+  <p>Comparte este QR con tus invitados para que puedan subir fotos</p>
+  <div class="qr-placeholder">
+    <img [src]="event()!.qrCode" alt="QR del evento"
+         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+    <div class="qr-error" style="display:none;">⚠️ No se pudo cargar el QR</div>
+  </div>
+  <div class="qr-actions">
+    <a [href]="event()!.qrCode" download="qr-{{ event()!.slug }}.png"
+       class="btn-pw-ghost btn-sm">
+      <i class="bi bi-download"></i> Descargar QR
+    </a>
+    <button class="btn-pw-ghost btn-sm" (click)="regenerateQr()" [disabled]="regeneratingQr()">
+      @if (regeneratingQr()) {
+        <span class="pw-spinner-sm"></span> Regenerando…
+      } @else {
+        <i class="bi bi-arrow-clockwise"></i> Regenerar QR
+      }
+    </button>
+  </div>
+</div>
             <div class="link-section">
               <h4>Enlace directo</h4>
               <div class="event-link">
@@ -195,9 +206,12 @@ const MAX_ACTIVITY_LOG = 30;
               <h3>Fotos del evento ({{ photos().length }})</h3>
               @if (photos().length > 0) {
                 <button class="btn-pw-ghost btn-sm" (click)="downloadZip()" [disabled]="downloadingZip()">
-                  <i class="bi" [class.bi-file-earmark-zip]="!downloadingZip()" [class.bi-hourglass-split]="downloadingZip()"></i>
-                  {{ downloadingZip() ? 'Preparando ZIP…' : 'Descargar álbum de fotos' }}
-                </button>
+  @if (downloadingZip()) {
+    <span class="pw-spinner-sm"></span> Preparando ZIP…
+  } @else {
+    <i class="bi bi-file-earmark-zip"></i> Descargar álbum de fotos
+  }
+</button>
               }
             </div>
             @if (photos().length === 0) {
@@ -473,7 +487,9 @@ const MAX_ACTIVITY_LOG = 30;
     .message-content i { color: var(--pw-rose); margin-top: 0.2rem; flex-shrink: 0; }
     .message-author { font-size: 0.8rem; font-weight: 700; color: var(--pw-violet-light); }
     .message-text { margin: 0.15rem 0 0; font-size: 0.9rem; color: rgba(248,247,255,0.85); word-break: break-word; }
-  `]
+    .qr-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; justify-content: center; }
+    .qr-error { align-items: center; justify-content: center; width: 100%; height: 100%; color: rgba(248,247,255,0.5); font-size: 0.75rem; text-align: center; padding: 0.5rem; }
+ `]
 })
 export class EventDetailComponent implements OnInit, OnDestroy {
   private route       = inject(ActivatedRoute);
@@ -496,6 +512,8 @@ notifications = signal<ActivityNotification[]>([]);
 activityLog = signal<ActivityNotification[]>([]);
 unreadCount = signal(0);
 showActivityPanel = signal(false);
+regeneratingQr = signal(false);
+
   guestUrl = () => `${window.location.origin}/e/${this.event()?.slug}`;
   planLabel = computed(() => PLAN_LABELS[this.event()?.plan!] ?? 'Gratis');
   photosUsagePercent = computed(() => {
@@ -606,6 +624,7 @@ showActivityPanel = signal(false);
       error: () => this.togglingMessages.set(false)
     });
   }
+
   downloadZip() {
     const event = this.event();
     if (!event) return;
@@ -623,10 +642,28 @@ showActivityPanel = signal(false);
       error: () => this.downloadingZip.set(false)
     });
   }
+
+  regenerateQr() {
+  const event = this.event();
+  if (!event) return;
+  if (!confirm('¿Regenerar el QR de este evento? El código impreso o compartido actualmente dejará de funcionar.')) {
+    return;
+  }
+  this.regeneratingQr.set(true);
+  this.evSvc.regenerateQR(event._id).subscribe({
+    next: (res) => {
+      this.event.update(e => e ? { ...e, qrCode: res.event.qrCode } : e);
+      this.regeneratingQr.set(false);
+    },
+    error: () => this.regeneratingQr.set(false)
+  });
+}
+
   onColorChange(e: Event) {
   const value = (e.target as HTMLInputElement).value;
   this.brandingColor.set(value);
 }
+
 saveBranding() {
   const event = this.event();
   if (!event) return;
@@ -641,4 +678,6 @@ saveBranding() {
     error: () => this.savingBranding.set(false)
   });
 }
+
+
 }

@@ -11,7 +11,7 @@ import { map } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import { environment } from '../../../../environments/environment';
-
+import { Router } from '@angular/router';
 
 @Injectable({
   providedIn: 'root',
@@ -23,6 +23,8 @@ export class AuthService {
   private readonly authState = inject(AuthState);
 
   private http = inject(HttpClient);
+
+  private router = inject(Router);
 
   private base = `${environment.apiUrl}/auth`;
 
@@ -84,7 +86,7 @@ register(dto: RegisterDto) {
 
     this.storage.remove(STORAGE_KEYS.USER);
     this.storage.remove(STORAGE_KEYS.TOKEN);
-
+    this.router.navigate(['/']);
   }
 
 

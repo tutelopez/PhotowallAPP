@@ -43,6 +43,7 @@ router.patch(
 
 router.patch('/:eventId/branding', ensureAuth([UserRole.ORGANIZER]), EventController.updateBranding);
 
+router.patch('/:eventId/regenerate-qr', ensureAuth([UserRole.ORGANIZER]), EventController.regenerateQR);
 // ⚠️ SIEMPRE AL FINAL
 router.get('/:slug', controller.getBySlug);
 

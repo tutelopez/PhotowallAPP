@@ -77,9 +77,14 @@ import { SocketService } from '../../core/services/socket';
 } @else {
               <input type="file" id="photo-upload" accept="image/*,video/*" multiple
        (change)="onFileSelected($event)" hidden #fileInput>
-              <button class="btn-pw-primary" (click)="fileInput.click()">
-                <i class="bi bi-camera"></i> Subir foto
-              </button>}
+              <button class="btn-pw-primary" (click)="fileInput.click()" [disabled]="uploading()">
+  @if (uploading()) {
+    <span class="pw-spinner-sm"></span> Subiendo…
+  } @else {
+    <i class="bi bi-camera"></i> Subir foto
+  }
+</button>
+            }
               @if (videoTooLong()) {
   <div class="limit-banner">🎥 El video supera los 30 segundos permitidos.</div>
 }
@@ -402,13 +407,7 @@ accentColor = computed(() => this.event()?.branding?.accentColor || null);
   });
   input.value = '';
 }
-private uploadFile(session: { eventId: string; guestId: string }, file: File) {
-  this.photosService
-    .uploadPhoto(session.eventId, session.guestId, file)
-    .subscribe({
-      next: () => this.loadPhotos()
-    });
-}
+
 private validateVideoDuration(file: File): Promise<boolean> {
   return new Promise(resolve => {
     const video = document.createElement('video');
@@ -476,4 +475,24 @@ sendEmoji(emoji: string) {
     if (this.lastEmojiSent() === emoji) this.lastEmojiSent.set(null);
   }, 400);
 }
+
+uploading = signal(false);
+private uploadingCount = signal(0);
+
+private uploadFile(session: { eventId: string; guestId: string }, file: File) {
+  this.uploadingCount.update(n => n + 1);
+  this.uploading.set(true);
+  this.photosService
+    .uploadPhoto(session.eventId, session.guestId, file)
+    .subscribe({
+      next: () => { this.loadPhotos(); this.finishOneUpload(); },
+      error: () => this.finishOneUpload()
+    });
+}
+
+private finishOneUpload() {
+  this.uploadingCount.update(n => Math.max(0, n - 1));
+  if (this.uploadingCount() === 0) this.uploading.set(false);
+}
+
 }

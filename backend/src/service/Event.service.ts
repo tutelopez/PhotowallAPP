@@ -30,7 +30,7 @@ export const createEvent = async (data: any) => {
   }
 
   const slug = generateSlug(data.name);
-  const eventUrl = `${process.env.FRONT_URL}/e/${slug}`;
+  const eventUrl = `${process.env.FRONTEND_URL}/e/${slug}`;
   const qrCode = await generateEventQR(eventUrl);
 
   let coverImageUrl = DEFAULT_COVER_IMAGE;
@@ -251,6 +251,16 @@ export const updateBranding = async (
     throw err;
   }
   event.branding = { accentColor };
+  await event.save();
+  return event;
+};
+
+
+export const regenerateQR = async (eventId: string, organizerId: string) => {
+  const event = await EventModel.findOne({ _id: eventId, organizer: organizerId });
+  if (!event) throw new Error('Evento no encontrado o no autorizado');
+  const eventUrl = `${process.env.FRONTEND_URL}/e/${event.slug}`;
+  event.qrCode = await generateEventQR(eventUrl);
   await event.save();
   return event;
 };
