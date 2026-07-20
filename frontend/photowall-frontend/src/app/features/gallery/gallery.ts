@@ -16,9 +16,22 @@ import { SocketService } from '../../core/services/socket';
   imports: [CommonModule, ReactiveFormsModule],
   template: `
    <div class="gallery-page" [style.--pw-violet]="accentColor()">
-      <!-- Join modal -->
-      @if (!hasSession() && !loading()) {
-        <div class="join-overlay">
+  @if (loading()) {
+    <!-- Skeleton mientras carga el evento -->
+    <div class="hero-skeleton shimmer"></div>
+    <div class="toolbar-skeleton">
+      <div class="skel-pill shimmer"></div>
+      <div class="skel-btn shimmer"></div>
+    </div>
+    <div class="photo-grid">
+      @for (i of skeletonItems; track i) {
+        <div class="grid-photo skeleton-photo shimmer"></div>
+      }
+    </div>
+  } @else {
+    <!-- Join modal -->
+    @if (!hasSession()) {
+      <div class="join-overlay">
           <div class="join-card">
             <div class="join-logo"><span style="color:#F472B6">●</span> PhotoWall</div>
             <h2>¡Bienvenido al evento!</h2>
@@ -123,8 +136,16 @@ import { SocketService } from '../../core/services/socket';
 </div>
 
         <!-- Galería -->
-        <div class="photo-grid">
-          @for (photo of photos(); track photo._id) {
+
+@if (loadingPhotos()) {
+  <div class="photo-grid">
+    @for (i of skeletonItems; track i) {
+      <div class="grid-photo skeleton-photo shimmer"></div>
+    }
+  </div>
+} @else {
+  <div class="photo-grid">
+    @for (photo of photos(); track photo._id) {
   <div class="grid-photo">
     <div class="photo-img-wrap">
       @if (photo.type === 'video') {
@@ -141,15 +162,15 @@ import { SocketService } from '../../core/services/socket';
     </div>
   </div>
 }
-          @if (photos().length === 0) {
-            <div class="no-photos">
-              <p>Sé el primero en subir una foto 📸</p>
-            </div>
-          }
-        </div>
+    @if (photos().length === 0) {
+      <div class="no-photos"><p>Sé el primero en subir una foto 📸</p></div>
+    }
+  </div>
+}
       }
-    </div>
-  `,
+       }
+</div>
+    `,
   styles: [`
     .gallery-page { min-height: 100vh; background: var(--pw-ink); }
 
@@ -310,6 +331,31 @@ import { SocketService } from '../../core/services/socket';
   font-size: 0.85rem; text-align: center; margin: 1rem 0;
 }
 .photo-img-wrap video { width: 100%; display: block; background: #000; }
+
+
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.shimmer {
+  background: linear-gradient(90deg,
+    var(--pw-card-bg) 25%,
+    rgba(255,255,255,0.08) 50%,
+    var(--pw-card-bg) 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite linear;
+  border: 1px solid var(--pw-card-border);
+}
+.hero-skeleton {
+  height: 260px;
+}
+.toolbar-skeleton {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1rem 2rem; max-width: 1200px; margin: 0 auto;
+}
+.skel-pill { width: 90px; height: 28px; border-radius: 100px; }
+.skel-btn  { width: 140px; height: 44px; border-radius: 100px; }
+.skeleton-photo { aspect-ratio: 1; }
   `]
 })
 export class GalleryComponent implements OnInit, OnDestroy {
@@ -326,6 +372,8 @@ export class GalleryComponent implements OnInit, OnDestroy {
   event   = signal<PhotoWallEvent | null>(null);
   photos  = signal<Photo[]>([]);
   loading = signal(true);
+  loadingPhotos = signal(true);
+  skeletonItems = [0, 1, 2, 3, 4, 5];
   joiningLoading = signal(false);
   hasSession = signal(false);
   videoTooLong = signal(false);
@@ -338,18 +386,21 @@ export class GalleryComponent implements OnInit, OnDestroy {
   private pollInterval?: ReturnType<typeof setInterval>;
 
   ngOnInit() {
-    const slug = this.route.snapshot.paramMap.get('slug') ?? '';
-    this.slug.set(slug);
-    this.hasSession.set(this.guestService.hasSession(slug));
-    this.eventsService.getEventBySlug(slug).subscribe({
-      next: (ev) => { this.event.set(ev); this.loading.set(false); },
-      error: ()  => this.loading.set(false)
-    });
-    if (this.hasSession()) {
-      this.loadPhotos();
-      this.startPolling();
-    }
-  }
+  const slug = this.route.snapshot.paramMap.get('slug') ?? '';
+  this.slug.set(slug);
+  this.hasSession.set(this.guestService.hasSession(slug));
+  this.eventsService.getEventBySlug(slug).subscribe({
+    next: (ev) => {
+      this.event.set(ev);
+      this.loading.set(false);
+      if (this.hasSession()) {
+        this.loadPhotos();
+        this.startPolling();
+      }
+    },
+    error: () => this.loading.set(false)
+  });
+}
 
   ngOnDestroy() {
     if (this.pollInterval) clearInterval(this.pollInterval);
@@ -421,14 +472,16 @@ private validateVideoDuration(file: File): Promise<boolean> {
   });
 }
 
-  private loadPhotos() {
-    if (!this.event()) return;
-    this.photosService
-      .getPhotosByEvent(this.event()!._id)
-      .subscribe({
-        next: (photos) => this.photos.set(photos)
-      });
-  }
+ private loadPhotos() {
+  if (!this.event()) return;
+  this.photosService.getPhotosByEvent(this.event()!._id).subscribe({
+    next: (photos) => {
+      this.photos.set(photos);
+      this.loadingPhotos.set(false);
+    },
+    error: () => this.loadingPhotos.set(false)
+  });
+}
 
   private startPolling() {
     this.pollInterval = setInterval(() => this.loadPhotos(), 5000);
