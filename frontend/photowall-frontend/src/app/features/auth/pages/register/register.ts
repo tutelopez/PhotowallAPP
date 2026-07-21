@@ -40,6 +40,7 @@ import { GoogleSigninButtonComponent } from '../../../../shared/components/googl
             <input id="password" type="password" formControlName="password"
                    placeholder="Mínimo 6 caracteres" autocomplete="new-password">
           </div>
+
 <div class="checkbox-field">
   <label class="checkbox-label">
     <input type="checkbox" formControlName="acceptedTerms">
@@ -50,14 +51,7 @@ import { GoogleSigninButtonComponent } from '../../../../shared/components/googl
         [disabled]="loading() || form.invalid">
   @if (loading()) { Creando cuenta… } @else { Crear cuenta gratis }
 </button>
-          <button type="submit" class="btn-pw-primary w-full"
-        [disabled]="loading() || form.invalid">
-  @if (loading()) {
-    <span class="pw-spinner-sm"></span> Creando cuenta…
-  } @else {
-    Crear cuenta gratis
-  }
-</button>
+       
         </form>
   <div class="auth-divider"><span>o regístrate con</span></div>
        @if (loading()) {
@@ -173,7 +167,7 @@ submit() {
   this.loading.set(true);
 
   this.error.set('');
-  
+
     this.rateLimited.set(false);
 
   this.auth.register(this.form.getRawValue())
