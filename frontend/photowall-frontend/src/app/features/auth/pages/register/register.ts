@@ -40,7 +40,16 @@ import { GoogleSigninButtonComponent } from '../../../../shared/components/googl
             <input id="password" type="password" formControlName="password"
                    placeholder="Mínimo 6 caracteres" autocomplete="new-password">
           </div>
-
+<div class="checkbox-field">
+  <label class="checkbox-label">
+    <input type="checkbox" formControlName="acceptedTerms">
+    <span>Acepto los <a routerLink="/terminos" target="_blank">Términos y Condiciones</a> y la <a routerLink="/privacidad" target="_blank">Política de Tratamiento de Datos</a></span>
+  </label>
+</div>
+<button type="submit" class="btn-pw-primary w-full"
+        [disabled]="loading() || form.invalid">
+  @if (loading()) { Creando cuenta… } @else { Crear cuenta gratis }
+</button>
           <button type="submit" class="btn-pw-primary w-full"
         [disabled]="loading() || form.invalid">
   @if (loading()) {
@@ -131,6 +140,13 @@ import { GoogleSigninButtonComponent } from '../../../../shared/components/googl
   height: 40px; /* misma altura aprox. que el botón de Google (size: large) */
   color: rgba(248,247,255,0.65);
   font-size: 0.9rem;
+  .checkbox-field { margin: 0.5rem 0 1.5rem; }
+.checkbox-label {
+  display: flex; align-items: flex-start; gap: 0.6rem; cursor: pointer;
+  font-size: 0.8rem; color: rgba(248,247,255,0.6); line-height: 1.4;
+  input[type="checkbox"] { margin-top: 0.15rem; accent-color: var(--pw-violet); flex-shrink: 0; }
+  a { color: #A78BFA; }
+}
 }
   `]
 })
@@ -147,6 +163,7 @@ export class RegisterComponent {
     name:     ['', Validators.required],
     email:    ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(6)]],
+    acceptedTerms: [false, Validators.requiredTrue],
   });
 
 submit() {
@@ -156,6 +173,7 @@ submit() {
   this.loading.set(true);
 
   this.error.set('');
+  
     this.rateLimited.set(false);
 
   this.auth.register(this.form.getRawValue())

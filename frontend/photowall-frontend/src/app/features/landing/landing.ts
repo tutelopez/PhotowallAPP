@@ -125,8 +125,8 @@ import { RouterLink } from '@angular/router';
         <span style="color:#F472B6">●</span> PhotoWall
       </div>
       <div class="footer-links">
-        <a href="#">Privacidad</a>
-        <a href="#">Términos</a>
+        <a routerLink="/terminos">Términos</a>
+        <a routerLink="/privacidad">Privacidad</a>
         <a href="#">Contacto</a>
       </div>
       <div class="footer-copy">© 2025 PhotoWall</div>

@@ -34,6 +34,16 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+  path: 'terminos',
+  loadComponent: () =>
+    import('./features/legal/pages/terms/terms').then(m => m.TermsComponent)
+},
+{
+  path: 'privacidad',
+  loadComponent: () =>
+    import('./features/legal/pages/privacy/privacy').then(m => m.PrivacyComponent)
+},
+  {
   path: 'precios',
   loadComponent: () =>
     import('./features/pricing/pricing').then(m => m.PricingComponent)
