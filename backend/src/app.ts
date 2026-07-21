@@ -10,6 +10,7 @@ import adminRoutes from './routes/Admin.routes';
 import authRoutes from './routes/Auth.routes';
 import messageRoutes from './routes/Message.routes';
 const app = express();
+app.set('trust proxy', 1);
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

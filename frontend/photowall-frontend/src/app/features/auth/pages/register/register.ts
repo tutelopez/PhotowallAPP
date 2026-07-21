@@ -18,8 +18,11 @@ import { GoogleSigninButtonComponent } from '../../../../shared/components/googl
         <p class="auth-sub">Empieza a organizar eventos fotográficos en minutos</p>
 
         @if (error()) {
-          <div class="auth-error">{{ error() }}</div>
-        }
+  <div class="auth-error" [class.auth-error--limit]="rateLimited()">
+    <i class="bi" [class.bi-clock-history]="rateLimited()" [class.bi-exclamation-circle]="!rateLimited()"></i>
+    {{ error() }}
+  </div>
+}
 
         <form [formGroup]="form" (ngSubmit)="submit()">
           <div class="field">
@@ -86,6 +89,17 @@ import { GoogleSigninButtonComponent } from '../../../../shared/components/googl
       border-radius: 10px; padding: 0.75rem 1rem;
       font-size: 0.875rem; color: #f09595; margin-bottom: 1.5rem;
     }
+    .auth-error {
+  display: flex; align-items: center; gap: 0.5rem;
+  background: rgba(226,75,74,0.15); border: 1px solid rgba(226,75,74,0.35);
+  border-radius: 10px; padding: 0.75rem 1rem;
+  font-size: 0.875rem; color: #f09595; margin-bottom: 1.5rem;
+}
+.auth-error--limit {
+  background: rgba(217,164,65,0.15);
+  border-color: rgba(217,164,65,0.35);
+  color: #e8bd6f;
+}
     .field {
       margin-bottom: 1.25rem;
       label { display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 0.4rem; color: rgba(248,247,255,0.75); }
@@ -127,6 +141,7 @@ export class RegisterComponent {
 
   loading = signal(false);
   error   = signal('');
+  rateLimited = signal(false);
 
   form = this.fb.nonNullable.group({
     name:     ['', Validators.required],
@@ -141,6 +156,7 @@ submit() {
   this.loading.set(true);
 
   this.error.set('');
+    this.rateLimited.set(false);
 
   this.auth.register(this.form.getRawValue())
     .subscribe({
@@ -152,7 +168,7 @@ submit() {
       },
 
       error: err => {
-
+        this.rateLimited.set(err.status === 429);
         this.error.set(
           err.error?.message ??
           'No fue posible crear la cuenta'
@@ -175,9 +191,11 @@ submit() {
 onGoogleCredential(credential: string) {
     this.loading.set(true);
     this.error.set('');
+      this.rateLimited.set(false);
     this.auth.loginWithGoogle(credential).subscribe({
       next: () => this.router.navigate(['/dashboard']),
       error: err => {
+              this.rateLimited.set(err.status === 429);
         this.error.set(err.error?.message ?? 'No fue posible registrarte con Google');
         this.loading.set(false);
       },
