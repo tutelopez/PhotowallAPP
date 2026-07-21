@@ -25,6 +25,14 @@ const UserSchema = new Schema(
       enum: Object.values(UserRole),
       default: UserRole.ORGANIZER
     },
+    resetPasswordToken: {
+  type: String,
+  default: null
+},
+resetPasswordExpires: {
+  type: Date,
+  default: null
+},
 
     // 👇 SOLO PARA GUESTS
     event: {
@@ -40,6 +48,7 @@ const UserSchema = new Schema(
     authProvider: { type: String, enum: ['local', 'google'], default: 'local' } // 👈 google auth
  
   },
+  
   { timestamps: true }
 );
 

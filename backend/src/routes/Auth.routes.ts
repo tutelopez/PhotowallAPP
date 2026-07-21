@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { registerUser, loginUser,googleAuth } from '../controller/Auth.controller';
+import { registerUser, loginUser,googleAuth, forgotPassword, resetPassword } from '../controller/Auth.controller';
 import { requireAuth } from '../middlewares/Auth.middlware';
 import { loginLimiter, registerLimiter } from '../middlewares/rateLimiter'; // 👈 nuevo
 
@@ -14,4 +14,6 @@ router.post('/login', loginLimiter, loginUser);
 // Login con Google
 router.post('/google', googleAuth);
 
+router.post('/forgot-password', forgotPassword);
+router.post('/reset-password', resetPassword);
 export default router;

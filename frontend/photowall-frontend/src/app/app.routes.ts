@@ -18,6 +18,16 @@ export const routes: Routes = [
       import('./features/auth/pages/register/register').then(m => m.RegisterComponent)
   },
   {
+  path: 'forgot-password',
+  loadComponent: () =>
+    import('./features/auth/pages/forgot-password/forgot-password').then(m => m.ForgotPasswordComponent)
+},
+{
+  path: 'reset-password',
+  loadComponent: () =>
+    import('./features/auth/pages/reset-password/reset-password').then(m => m.ResetPasswordComponent)
+},
+  {
     path: 'dashboard',
     loadComponent: () =>
       import('./features/dashboard/pages/dashboard/dashboard').then(m => m.DashboardComponent),

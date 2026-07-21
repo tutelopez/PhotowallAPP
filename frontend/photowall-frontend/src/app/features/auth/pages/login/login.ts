@@ -35,11 +35,14 @@ import { GoogleSigninButtonComponent } from '../../../../shared/components/googl
             <input id="email" type="email" formControlName="email"
                    placeholder="tu@email.com" autocomplete="email">
           </div>
-          <div class="field">
-            <label for="password">Contraseña</label>
-            <input id="password" type="password" formControlName="password"
-                   placeholder="••••••••" autocomplete="current-password">
-          </div>
+
+
+<div class="field">
+  <label for="password">Contraseña</label>
+  <input id="password" type="password" formControlName="password"
+         placeholder="••••••••" autocomplete="current-password">
+  <a routerLink="/forgot-password" class="forgot-link">¿Olvidaste tu contraseña?</a>
+</div>
 
         <button type="submit" class="btn-pw-primary w-full"
         [disabled]="loading() || form.invalid">
@@ -154,6 +157,11 @@ import { GoogleSigninButtonComponent } from '../../../../shared/components/googl
   height: 40px; /* misma altura aprox. que el botón de Google (size: large) */
   color: rgba(248,247,255,0.65);
   font-size: 0.9rem;
+}
+.forgot-link {
+  display: block; margin-top: 0.5rem; font-size: 0.8rem;
+  color: rgba(248,247,255,0.5); text-align: right;
+  &:hover { color: #A78BFA; }
 }
   `]
 })

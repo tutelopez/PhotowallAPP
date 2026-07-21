@@ -117,3 +117,57 @@ export const sendExpirationReminderEmail = async (
     console.error('🔴 Error enviando recordatorio de vencimiento:', err);
   }
 };
+
+export const sendFirstGuestEmail = async (
+  user: { name: string; email: string },
+  event: { name: string; slug: string }
+) => {
+  try {
+    const html = wrapTemplate(
+      `¡Tu QR ya está funcionando! 🎊`,
+      `
+      <p>Hola ${user.name}, el primer invitado se acaba de unir a <strong>"${event.name}"</strong> — eso confirma que tu código QR y tu enlace están funcionando correctamente.</p>
+      <p>Ya puedes relajarte, tus invitados van a poder subir fotos y mensajes sin problema durante el evento.</p>
+      <a href="${FRONTEND_URL}/e/${event.slug}"
+         style="display:inline-block; margin-top:12px; background:#7C3AED; color:#F8F7FF; text-decoration:none; padding:12px 24px; border-radius:100px; font-weight:600; font-size:14px;">
+        Ver la galería en vivo
+      </a>
+      `
+    );
+    await transporter.sendMail({
+      from: FROM,
+      to: user.email,
+      subject: `🎊 ¡El primer invitado se unió a "${event.name}"!`,
+      html
+    });
+  } catch (err) {
+    console.error('🔴 Error enviando correo de primer invitado:', err);
+  }
+};
+
+export const sendPasswordResetEmail = async (
+  user: { name: string; email: string },
+  resetUrl: string
+) => {
+  try {
+    const html = wrapTemplate(
+      `Restablece tu contraseña 🔑`,
+      `
+      <p>Hola ${user.name}, recibimos una solicitud para restablecer tu contraseña de PhotoWall.</p>
+      <p>Este enlace es válido por <strong>1 hora</strong>. Si tú no pediste esto, puedes ignorar este correo con tranquilidad.</p>
+      <a href="${resetUrl}"
+         style="display:inline-block; margin-top:12px; background:#7C3AED; color:#F8F7FF; text-decoration:none; padding:12px 24px; border-radius:100px; font-weight:600; font-size:14px;">
+        Restablecer contraseña
+      </a>
+      `
+    );
+    await transporter.sendMail({
+      from: FROM,
+      to: user.email,
+      subject: '🔑 Restablece tu contraseña de PhotoWall',
+      html
+    });
+  } catch (err) {
+    console.error('🔴 Error enviando correo de restablecimiento:', err);
+  }
+};

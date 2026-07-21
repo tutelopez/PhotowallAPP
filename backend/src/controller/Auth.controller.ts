@@ -3,7 +3,7 @@ import { UserModel, UserRole } from '../models/User.model';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import * as UserService from '../service/User.service';
-import { sendWelcomeEmail } from '../service/Email.service';
+import { sendWelcomeEmail, sendPasswordResetEmail } from '../service/Email.service';
 import { generateToken } from '../utils/jwt';
 import { verifyGoogleToken } from '../utils/googleAuth'; // 👈 nuevo
 
@@ -93,5 +93,34 @@ export const googleAuth = async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('🔴 ERROR GOOGLE AUTH:', error);
     res.status(401).json({ message: error.message || 'Error autenticando con Google' });
+  }
+};
+
+export const forgotPassword = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: 'El correo es obligatorio' });
+    const result = await UserService.requestPasswordReset(email);
+    res.json({ message: 'Si el correo existe en nuestro sistema, enviamos un enlace de recuperación' });
+    if (result) {
+      const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${result.rawToken}`;
+      sendPasswordResetEmail({ name: result.user.name, email: result.user.email }, resetUrl);
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error procesando la solicitud' });
+  }
+};
+
+export const resetPassword = async (req: Request, res: Response) => {
+  try {
+    const { token, password } = req.body;
+    if (!token || !password) {
+      return res.status(400).json({ message: 'token y password son obligatorios' });
+    }
+    await UserService.resetPassword(token, password);
+    res.json({ message: 'Contraseña actualizada correctamente' });
+  } catch (error: any) {
+    res.status(error.status || 400).json({ message: error.message || 'Error restableciendo la contraseña' });
   }
 };

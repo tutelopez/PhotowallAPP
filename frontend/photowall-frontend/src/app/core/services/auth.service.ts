@@ -127,4 +127,11 @@ forceLogout(): void { // 👈 nuevo
   this.router.navigate(['/login'], { queryParams: { sessionExpired: 'true' } });
 }
 
+forgotPassword(email: string) {
+  return this.http.post<{ message: string }>(`${this.base}/forgot-password`, { email });
+}
+resetPassword(token: string, password: string) {
+  return this.http.post<{ message: string }>(`${this.base}/reset-password`, { token, password });
+}
+
 }
