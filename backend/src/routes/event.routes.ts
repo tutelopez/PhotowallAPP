@@ -45,6 +45,8 @@ router.patch('/:eventId/request-plan-upgrade', ensureAuth([UserRole.ORGANIZER]),
 
 router.patch('/:eventId/branding', ensureAuth([UserRole.ORGANIZER]), EventController.updateBranding);
 
+router.patch('/:eventId/cancel-pending-plan', ensureAuth([UserRole.ORGANIZER]), EventController.cancelPendingPlan);
+
 router.patch('/:eventId/regenerate-qr', ensureAuth([UserRole.ORGANIZER]), EventController.regenerateQR);
 // ⚠️ SIEMPRE AL FINAL
 router.get('/:slug', controller.getBySlug);

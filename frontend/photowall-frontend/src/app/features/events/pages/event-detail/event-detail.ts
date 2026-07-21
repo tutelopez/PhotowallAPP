@@ -11,6 +11,8 @@ import { GuestMessage } from '../../../../shared/models/Message.model';
 import { ToastService } from '../../../../core/services/toast'; // 👈 nuevo
 import { PLAN_CATALOG, PLAN_LABELS, PlanType } from '../../../../shared/models/Plan.model';
 import {FormsModule} from '@angular/forms';
+import { PaymentsService } from '../../../../core/services/payments';
+import { BoldCheckoutService } from '../../../../core/services/bold-checkout';
 
 interface ActivityNotification {
   id: string;
@@ -141,24 +143,35 @@ const MAX_ACTIVITY_LOG = 30;
                 <div class="usage-fill" [style.width.%]="messagesUsagePercent()"></div>
               </div>
             </div>
-           @if (event()!.pendingPlan) {
+
+@if (event()!.pendingPlan) {
   <div class="pending-plan-note">
-    ⏳ Solicitud del Plan {{ pendingPlanLabel() }} en revisión — te contactaremos pronto.
+    ⏳ Procesando tu pago del Plan {{ pendingPlanLabel() }}…
+  </div>
+  <div class="upgrade-picker">
+    <button class="btn-pw-primary btn-sm" (click)="payWithBold()" [disabled]="processingPayment()">
+      {{ processingPayment() ? 'Abriendo Bold…' : 'Reintentar pago' }}
+    </button>
+    <button class="btn-pw-ghost btn-sm" (click)="cancelPendingPlan()" [disabled]="cancelingPlan()">
+      {{ cancelingPlan() ? 'Cancelando…' : 'Cancelar' }}
+    </button>
   </div>
 } @else {
   <div class="upgrade-picker">
     <select [(ngModel)]="upgradeChoice" class="upgrade-select">
       @for (p of plans; track p.plan) {
-        @if (p.plan !== event()!.plan) {
-          <option [value]="p.plan">{{ p.name }} — {{ p.priceCOP === 0 ? 'Gratis' : ('$' + (p.priceCOP | number:'1.0-0') + ' COP') }}</option>
+        @if (p.plan !== event()!.plan && p.plan !== 'free') {
+          <option [value]="p.plan">{{ p.name }} — \${{ p.priceCOP | number:'1.0-0' }} COP</option>
         }
       }
     </select>
-    <button class="btn-pw-ghost btn-sm" (click)="requestUpgrade()" [disabled]="requestingUpgrade()">
-      {{ requestingUpgrade() ? 'Enviando…' : 'Solicitar cambio de plan' }}
+    <button class="btn-pw-primary btn-sm" (click)="payWithBold()" [disabled]="processingPayment()">
+      {{ processingPayment() ? 'Abriendo Bold…' : 'Pagar con Bold' }}
     </button>
   </div>
 }
+
+
           </div>
           <div class="branding-section pw-card">
   <h4>Color del evento</h4>
@@ -576,6 +589,11 @@ export class EventDetailComponent implements OnInit, OnDestroy {
   private photoSvc     = inject(PhotosService);
   private messagesSvc  = inject(MessagesService);
   private socketSvc    = inject(SocketService);
+  private paymentsSvc = inject(PaymentsService);
+private boldCheckout = inject(BoldCheckoutService);
+cancelingPlan = signal(false);
+
+processingPayment = signal(false);
   event   = signal<PhotoWallEvent | null>(null);
   photos  = signal<Photo[]>([]);
   loading = signal(true);
@@ -617,6 +635,8 @@ pendingPlanLabel = computed(() => {
     if (!u || u.maxMessages === null) return 0;
     return Math.min(100, (u.currentMessages / u.maxMessages) * 100);
   });
+
+
   ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id') ?? '';
     this.evSvc.getEventById(id).subscribe({
@@ -653,6 +673,14 @@ this.messagesSvc.getMessagesByEvent(ev._id).subscribe({
           this.pushNotification('guest', 'Nuevo invitado', `${guest.name} se unió al evento`);
         });
         this.brandingColor.set(ev.branding?.accentColor || '#7C3AED');
+
+       if (ev.pendingPlan) {
+  this.upgradeChoice = ev.pendingPlan;
+} else if (ev.desiredPlan) {
+  this.upgradeChoice = ev.desiredPlan;
+}
+
+
       },
       error: () => this.loading.set(false)
     });
@@ -803,6 +831,36 @@ requestUpgrade() {
       this.requestingUpgrade.set(false);
     },
     error: () => this.requestingUpgrade.set(false)
+  });
+}
+
+payWithBold() {
+  const event = this.event();
+  if (!event) return;
+  this.processingPayment.set(true);
+  this.paymentsSvc.createIntent(event._id, this.upgradeChoice).subscribe({
+    next: (intent) => {
+      this.processingPayment.set(false);
+      const redirectionUrl = `${window.location.origin}/events/${event._id}/payment-result?orderId=${intent.orderId}`;
+      this.boldCheckout.open(intent, redirectionUrl);
+    },
+    error: () => this.processingPayment.set(false)
+  });
+}
+
+cancelPendingPlan() {
+  const event = this.event();
+  if (!event) return;
+  this.cancelingPlan.set(true);
+  this.evSvc.cancelPendingPlan(event._id).subscribe({
+    next: (res) => {
+      this.event.update(e => e ? { ...e, pendingPlan: res.event.pendingPlan } : e);
+      this.cancelingPlan.set(false);
+    },
+    error: () => {
+      this.cancelingPlan.set(false);
+      this.toast.error('No se pudo cancelar la solicitud de pago.');
+    }
   });
 }
 

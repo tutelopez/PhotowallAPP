@@ -60,7 +60,7 @@ export const createEvent = async (data: any) => {
     profileImageUrl = result.secure_url;
   }
 
-  const pendingPlan =
+  const desiredPlan =
   data.desiredPlan && data.desiredPlan !== PlanType.FREE ? data.desiredPlan : null;
 
   return await EventModel.create({
@@ -71,7 +71,7 @@ export const createEvent = async (data: any) => {
     qrCode,
     coverImage: coverImageUrl,
     profileImage: profileImageUrl,
-    pendingPlan,
+    desiredPlan,
     organizer: data.organizerId
   });
 };
@@ -84,7 +84,12 @@ export const getEventBySlug = async (slug: string) => {
   const usage = await getUsage(event._id.toString(), plan);
     const branding = event.branding || { accentColor: '#7C3AED' };
 
-  return { ...event, plan, usage, branding, pendingPlan: event.pendingPlan || null, };
+  return { ...event,
+     plan,
+      usage,
+       branding,
+       desiredPlan: event.desiredPlan || null,
+        pendingPlan: event.pendingPlan || null, };
 };
 
 export const getEventsByOrganizer = async (organizerId: string) => {
@@ -146,6 +151,7 @@ const usage = await getUsage(eventId, event.plan as PlanType);
       organizer: event.organizer,
       plan: event.plan,
       pendingPlan: event.pendingPlan || null,
+      desiredPlan: event.desiredPlan || null,
       messagesEnabled: event.messagesEnabled,
       branding: event.branding || { accentColor: '#7C3AED' },
     },
@@ -287,6 +293,18 @@ export const requestPlanUpgrade = async (
     throw err;
   }
   event.pendingPlan = desiredPlan === PlanType.FREE ? null : desiredPlan;
+  await event.save();
+  return event;
+};
+
+export const cancelPendingPlan = async (eventId: string, organizerId: string) => {
+  const event = await EventModel.findOne({ _id: eventId, organizer: organizerId });
+  if (!event) {
+    const err: any = new Error('Evento no encontrado o no autorizado');
+    err.status = 403;
+    throw err;
+  }
+  event.pendingPlan = null;
   await event.save();
   return event;
 };

@@ -48,6 +48,12 @@ export const routes: Routes = [
   loadComponent: () =>
     import('./features/pricing/pricing').then(m => m.PricingComponent)
 },
+{
+  path: 'events/:id/payment-result',
+  loadComponent: () =>
+    import('./features/events/pages/payment-result/payment-result').then(m => m.PaymentResultComponent),
+  canActivate: [authGuard]
+},
   {
     path: 'events/new',
     loadComponent: () =>

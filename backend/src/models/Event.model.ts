@@ -73,6 +73,11 @@ pendingPlan: {
   enum: [...Object.values(PlanType), null],
   default: null
 },
+desiredPlan: {
+  type: String,
+  enum: [...Object.values(PlanType), null],
+  default: null
+},
 reminderSentAt: {
   type: Date,
   default: null

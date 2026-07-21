@@ -58,6 +58,7 @@ requestPlanUpgrade(eventId: string, desiredPlan: PlanType) {
         updatedAt: '',
         plan: res.event.plan,
         pendingPlan: res.event.pendingPlan ?? null,
+        desiredPlan: res.event.desiredPlan ?? null,
         usage: res.usage,
         branding: res.event.branding ?? { accentColor: '#7C3AED' },
         messagesEnabled: res.event.messagesEnabled ?? true,
@@ -87,6 +88,13 @@ updateBranding(eventId: string, accentColor: string) {
 regenerateQR(eventId: string) {
   return this.http.patch<{ message: string; event: PhotoWallEvent }>(
     `${this.base}/${eventId}/regenerate-qr`,
+    {}
+  );
+}
+
+cancelPendingPlan(eventId: string) {
+  return this.http.patch<{ message: string; event: PhotoWallEvent }>(
+    `${this.base}/${eventId}/cancel-pending-plan`,
     {}
   );
 }

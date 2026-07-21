@@ -190,3 +190,14 @@ export const requestPlanUpgrade = async (req: Request, res: Response) => {
     res.status(error.status || 400).json({ message: error.message });
   }
 };
+
+export const cancelPendingPlan = async (req: Request, res: Response) => {
+  try {
+    const { eventId } = req.params;
+    const organizerId = (req as any).user.userId;
+    const event = await EventService.cancelPendingPlan(eventId, organizerId);
+    res.json({ message: 'Solicitud de pago cancelada', event });
+  } catch (error: any) {
+    res.status(error.status || 400).json({ message: error.message });
+  }
+};
