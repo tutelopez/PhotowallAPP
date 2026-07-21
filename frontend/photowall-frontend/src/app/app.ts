@@ -3,11 +3,12 @@ import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map, startWith } from 'rxjs/operators';
 import { NavbarComponent } from './layout/navbar/navbar';
+import { ToastContainerComponent } from './shared/components/toast-container/toast-container'; // 👈 nuevo
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, NavbarComponent],
+  imports: [RouterOutlet, NavbarComponent,ToastContainerComponent],
   template: `
     @if (showNavbar()) {
       <app-navbar />
@@ -15,6 +16,7 @@ import { NavbarComponent } from './layout/navbar/navbar';
     <main [class.main--bare]="!showNavbar()">
       <router-outlet />
     </main>
+     <app-toast-container />
   `,
   styles: [`
     main {

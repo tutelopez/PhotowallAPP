@@ -9,6 +9,8 @@ import { MessagesService } from '../../../../core/services/messages';
 import { SocketService, NewPhotoEvent, GuestJoinedEvent } from '../../../../core/services/socket';
 import { GuestMessage } from '../../../../shared/models/Message.model';
 import { PLAN_LABELS } from '../../../../shared/models/Plan.model';
+import { ToastService } from '../../../../core/services/toast'; // 👈 nuevo
+
 interface ActivityNotification {
   id: string;
   type: 'photo' | 'message' | 'guest';
@@ -265,7 +267,7 @@ const MAX_ACTIVITY_LOG = 30;
               <h3>Mensajes de invitados ({{ messages().length }})</h3>
             </div>
 
-            
+
            @if (loadingMessages()) {
   <div class="messages-list">
     @for (i of skeletonMessages; track i) {
@@ -542,6 +544,7 @@ const MAX_ACTIVITY_LOG = 30;
 
 
 export class EventDetailComponent implements OnInit, OnDestroy {
+  private toast = inject(ToastService);
   private route       = inject(ActivatedRoute);
   private evSvc        = inject(EventsService);
   private photoSvc     = inject(PhotosService);
@@ -649,59 +652,64 @@ this.messagesSvc.getMessagesByEvent(ev._id).subscribe({
   clearActivity() {
     this.activityLog.set([]);
   }
-  copyLink() {
-    navigator.clipboard.writeText(this.guestUrl()).then(() => {
-      this.copied.set(true);
-      setTimeout(() => this.copied.set(false), 2000);
-    });
-  }
-  deletePhoto(id: string) {
-    if (!confirm('¿Eliminar esta foto?')) return;
-    this.photoSvc.deletePhoto(id).subscribe(() => {
-      this.photos.update(p => p.filter(ph => ph._id !== id));
-    });
-  }
-  deleteMessage(id: string) {
-    if (!confirm('¿Eliminar este mensaje?')) return;
-    this.deletingMessageId.set(id);
-    this.messagesSvc.deleteMessage(id).subscribe({
-      next: () => {
-        this.messages.update(list => list.filter(m => m._id !== id));
-        this.deletingMessageId.set(null);
-      },
-      error: () => this.deletingMessageId.set(null)
-    });
-  }
-  toggleMessages() {
-    const event = this.event();
-    if (!event) return;
-    this.togglingMessages.set(true);
-    this.evSvc.toggleMessages(event._id, !event.messagesEnabled).subscribe({
-      next: (res) => {
-        this.event.update(e => e ? { ...e, messagesEnabled: res.event.messagesEnabled } : e);
-        this.togglingMessages.set(false);
-      },
-      error: () => this.togglingMessages.set(false)
-    });
-  }
 
+  deletePhoto(id: string) {
+  if (!confirm('¿Eliminar esta foto?')) return;
+  this.photoSvc.deletePhoto(id).subscribe({
+    next: () => this.photos.update(p => p.filter(ph => ph._id !== id)),
+    error: () => this.toast.error('No se pudo eliminar la foto. Intenta de nuevo.')
+  });
+}
+
+  deleteMessage(id: string) {
+  if (!confirm('¿Eliminar este mensaje?')) return;
+  this.deletingMessageId.set(id);
+  this.messagesSvc.deleteMessage(id).subscribe({
+    next: () => {
+      this.messages.update(list => list.filter(m => m._id !== id));
+      this.deletingMessageId.set(null);
+    },
+    error: () => {
+      this.deletingMessageId.set(null);
+      this.toast.error('No se pudo eliminar el mensaje. Intenta de nuevo.');
+    }
+  });
+}
+  toggleMessages() {
+  const event = this.event();
+  if (!event) return;
+  this.togglingMessages.set(true);
+  this.evSvc.toggleMessages(event._id, !event.messagesEnabled).subscribe({
+    next: (res) => {
+      this.event.update(e => e ? { ...e, messagesEnabled: res.event.messagesEnabled } : e);
+      this.togglingMessages.set(false);
+    },
+    error: () => {
+      this.togglingMessages.set(false);
+      this.toast.error('No se pudo cambiar el estado de los mensajes.');
+    }
+  });
+}
   downloadZip() {
-    const event = this.event();
-    if (!event) return;
-    this.downloadingZip.set(true);
-    this.photoSvc.downloadZip(event._id).subscribe({
-      next: (blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${event.slug}-fotos.zip`;
-        a.click();
-        window.URL.revokeObjectURL(url);
-        this.downloadingZip.set(false);
-      },
-      error: () => this.downloadingZip.set(false)
-    });
-  }
+  const event = this.event();
+  if (!event) return;
+  this.downloadingZip.set(true);
+  this.photoSvc.downloadZip(event._id).subscribe({
+    next: (blob) => {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${event.slug}-fotos.zip`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+      this.downloadingZip.set(false);
+    },
+    error: () => {
+      this.downloadingZip.set(false);
+      this.toast.error('No se pudo preparar el álbum de fotos. Intenta de nuevo.');
+    }
+  });
+}
 
   regenerateQr() {
   const event = this.event();
@@ -735,8 +743,20 @@ saveBranding() {
       this.brandingSaved.set(true);
       setTimeout(() => this.brandingSaved.set(false), 2000);
     },
-    error: () => this.savingBranding.set(false)
+    error: () => {
+      this.savingBranding.set(false);
+      this.toast.error('No se pudo guardar el color. Intenta de nuevo.');
+    }
   });
+}
+
+copyLink() {
+  navigator.clipboard.writeText(this.guestUrl())
+    .then(() => {
+      this.copied.set(true);
+      setTimeout(() => this.copied.set(false), 2000);
+    })
+    .catch(() => this.toast.error('No se pudo copiar el enlace.')); // 👈 nuevo
 }
 
 
