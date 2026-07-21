@@ -1,6 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import {  ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
 import { GoogleSigninButtonComponent } from '../../../../shared/components/google-signin-button/google-signin-button';
 
@@ -17,9 +17,14 @@ import { GoogleSigninButtonComponent } from '../../../../shared/components/googl
         <h1 class="auth-title">Bienvenido de vuelta</h1>
         <p class="auth-sub">Inicia sesión para gestionar tus eventos</p>
 
-       @if (error()) {
-  <div class="auth-error" [class.auth-error--limit]="rateLimited()">
-    <i class="bi" [class.bi-clock-history]="rateLimited()" [class.bi-exclamation-circle]="!rateLimited()"></i>
+      @if (error()) {
+  <div class="auth-error"
+       [class.auth-error--limit]="rateLimited()"
+       [class.auth-error--info]="sessionExpired()">
+    <i class="bi"
+       [class.bi-clock-history]="rateLimited()"
+       [class.bi-info-circle]="sessionExpired()"
+       [class.bi-exclamation-circle]="!rateLimited() && !sessionExpired()"></i>
     {{ error() }}
   </div>
 }
@@ -108,7 +113,12 @@ import { GoogleSigninButtonComponent } from '../../../../shared/components/googl
   border-color: rgba(217,164,65,0.35);
   color: #e8bd6f;
 }
-    .field {
+.auth-error--info {
+  background: rgba(124,58,237,0.15);
+  border-color: rgba(124,58,237,0.35);
+  color: #C4B5FD;
+}
+.field {
       margin-bottom: 1.25rem;
       label { display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 0.4rem; color: rgba(248,247,255,0.75); }
       input {
@@ -151,11 +161,18 @@ export class LoginComponent {
   private fb     = inject(FormBuilder);
   private auth   = inject(AuthService);
   private router = inject(Router);
+  private route  = inject(ActivatedRoute);
 
   loading = signal(false);
   error   = signal('');
   rateLimited = signal(false);
-
+ sessionExpired = signal(false);
+  constructor() {
+    if (this.route.snapshot.queryParamMap.get('sessionExpired')) {
+      this.sessionExpired.set(true);
+      this.error.set('Tu sesión expiró. Por favor, inicia sesión de nuevo.');
+    }
+  }
   form = this.fb.nonNullable.group({
     email:    ['', [Validators.required, Validators.email]],
     password: ['', Validators.required],
@@ -170,6 +187,7 @@ submit() {
   this.error.set('');
 
   this.rateLimited.set(false);
+  this.sessionExpired.set(false);
 
   this.auth.login(this.form.getRawValue())
     .subscribe({
@@ -205,7 +223,7 @@ onGoogleCredential(credential: string) {
     this.loading.set(true);
     this.error.set('');
     this.rateLimited.set(false); // 👈 reset
-
+this.sessionExpired.set(false);
     this.auth.loginWithGoogle(credential).subscribe({
       next: () => this.router.navigate(['/dashboard']),
       error: err => {

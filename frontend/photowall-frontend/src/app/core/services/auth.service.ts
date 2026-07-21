@@ -120,4 +120,11 @@ loginWithGoogle(credential: string): Observable<AuthResult> {
   );
 }
 
+forceLogout(): void { // 👈 nuevo
+  this.authState.clear();
+  this.storage.remove(STORAGE_KEYS.USER);
+  this.storage.remove(STORAGE_KEYS.TOKEN);
+  this.router.navigate(['/login'], { queryParams: { sessionExpired: 'true' } });
+}
+
 }
