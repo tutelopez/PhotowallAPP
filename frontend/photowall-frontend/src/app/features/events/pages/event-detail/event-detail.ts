@@ -8,8 +8,9 @@ import { PhotoWallEvent } from '../../../../shared/models/Event.model';
 import { MessagesService } from '../../../../core/services/messages';
 import { SocketService, NewPhotoEvent, GuestJoinedEvent } from '../../../../core/services/socket';
 import { GuestMessage } from '../../../../shared/models/Message.model';
-import { PLAN_LABELS } from '../../../../shared/models/Plan.model';
 import { ToastService } from '../../../../core/services/toast'; // 👈 nuevo
+import { PLAN_CATALOG, PLAN_LABELS, PlanType } from '../../../../shared/models/Plan.model';
+import {FormsModule} from '@angular/forms';
 
 interface ActivityNotification {
   id: string;
@@ -24,7 +25,7 @@ const MAX_ACTIVITY_LOG = 30;
 @Component({
   selector: 'app-event-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, FormsModule],
   template: `
     <div class="detail-page">
       <!-- Notificaciones en tiempo real -->
@@ -140,8 +141,24 @@ const MAX_ACTIVITY_LOG = 30;
                 <div class="usage-fill" [style.width.%]="messagesUsagePercent()"></div>
               </div>
             </div>
-            <a href="https://wa.me/57XXXXXXXXXX?text=Quiero%20mejorar%20el%20plan%20de%20mi%20evento"
-               target="_blank" class="btn-pw-ghost">Mejorar plan</a>
+           @if (event()!.pendingPlan) {
+  <div class="pending-plan-note">
+    ⏳ Solicitud del Plan {{ pendingPlanLabel() }} en revisión — te contactaremos pronto.
+  </div>
+} @else {
+  <div class="upgrade-picker">
+    <select [(ngModel)]="upgradeChoice" class="upgrade-select">
+      @for (p of plans; track p.plan) {
+        @if (p.plan !== event()!.plan) {
+          <option [value]="p.plan">{{ p.name }} — {{ p.priceCOP === 0 ? 'Gratis' : ('$' + (p.priceCOP | number:'1.0-0') + ' COP') }}</option>
+        }
+      }
+    </select>
+    <button class="btn-pw-ghost btn-sm" (click)="requestUpgrade()" [disabled]="requestingUpgrade()">
+      {{ requestingUpgrade() ? 'Enviando…' : 'Solicitar cambio de plan' }}
+    </button>
+  </div>
+}
           </div>
           <div class="branding-section pw-card">
   <h4>Color del evento</h4>
@@ -538,6 +555,15 @@ const MAX_ACTIVITY_LOG = 30;
 .skel-qr { height: 220px; }
 .skeleton-photo { aspect-ratio: 1; }
 .skeleton-message { height: 60px; border: 1px solid var(--pw-card-border); }
+.upgrade-picker { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; }
+.upgrade-select {
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px; padding: 0.5rem 0.75rem; color: #F8F7FF; font-size: 0.85rem;
+}
+.pending-plan-note {
+  background: rgba(244,114,182,0.12); border: 1px solid rgba(244,114,182,0.3);
+  color: #F472B6; border-radius: 10px; padding: 0.7rem 1rem; font-size: 0.85rem;
+}
  `]
 })
 
@@ -570,6 +596,14 @@ loadingPhotos = signal(true);      // 👈 nuevo
 loadingMessages = signal(true);    // 👈 nuevo
 skeletonPhotos = [0, 1, 2, 3, 4, 5];   // 👈 nuevo
 skeletonMessages = [0, 1, 2];          // 👈 nuevo
+plans = PLAN_CATALOG;
+upgradeChoice: PlanType = PlanType.ESTANDAR;
+requestingUpgrade = signal(false);
+pendingPlanLabel = computed(() => {
+  const p = this.event()?.pendingPlan;
+  return p ? (PLAN_LABELS[p] ?? p) : '';
+});
+
 
   guestUrl = () => `${window.location.origin}/e/${this.event()?.slug}`;
   planLabel = computed(() => PLAN_LABELS[this.event()?.plan!] ?? 'Gratis');
@@ -759,5 +793,17 @@ copyLink() {
     .catch(() => this.toast.error('No se pudo copiar el enlace.')); // 👈 nuevo
 }
 
+requestUpgrade() {
+  const event = this.event();
+  if (!event) return;
+  this.requestingUpgrade.set(true);
+  this.evSvc.requestPlanUpgrade(event._id, this.upgradeChoice).subscribe({
+    next: (res) => {
+      this.event.update(e => e ? { ...e, pendingPlan: res.event.pendingPlan } : e);
+      this.requestingUpgrade.set(false);
+    },
+    error: () => this.requestingUpgrade.set(false)
+  });
+}
 
 }

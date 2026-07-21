@@ -4,7 +4,7 @@ import { environment } from '../../../../environments/environment';
 import { CreateEventDto } from '@shared/dto/event/create-event.dto';
 import { PhotoWallEvent } from '../../shared/models/Event.model';
 import { map } from 'rxjs/operators';
-
+import { PlanType } from '../../shared/models/Plan.model';
 
 @Injectable({
   providedIn: 'root'
@@ -12,31 +12,27 @@ import { map } from 'rxjs/operators';
 export class EventsService {
   private http = inject(HttpClient);
   private base = `${environment.apiUrl}/events`;
-  createEvent(dto: CreateEventDto) {
+
+
+  createEvent(dto: CreateEventDto & { desiredPlan?: PlanType }) {
   const formData = new FormData();
   formData.append('name', dto.name);
   formData.append('date', dto.date);
   formData.append('type', dto.type);
-  if (dto.coverImage) {
-    formData.append(
-      'coverImage',
-      dto.coverImage
-    );
+  if (dto.desiredPlan) {
+    formData.append('desiredPlan', dto.desiredPlan);
   }
-  if (dto.profileImage) {
-    formData.append(
-      'profileImage',
-      dto.profileImage
-    );
-  }
-  return this.http.post<{
-    message: string;
-    event: PhotoWallEvent;
-  }>(
-    this.base,
-    formData
+  if (dto.coverImage) formData.append('coverImage', dto.coverImage);
+  if (dto.profileImage) formData.append('profileImage', dto.profileImage);
+  return this.http.post<{ message: string; event: PhotoWallEvent }>(this.base, formData);
+}
+requestPlanUpgrade(eventId: string, desiredPlan: PlanType) {
+  return this.http.patch<{ message: string; event: PhotoWallEvent }>(
+    `${this.base}/${eventId}/request-plan-upgrade`,
+    { desiredPlan }
   );
 }
+
   getEventBySlug(slug: string) {
     return this.http.get<PhotoWallEvent>(
       `${this.base}/${slug}`
@@ -61,6 +57,7 @@ export class EventsService {
         createdAt: '',
         updatedAt: '',
         plan: res.event.plan,
+        pendingPlan: res.event.pendingPlan ?? null,
         usage: res.usage,
         branding: res.event.branding ?? { accentColor: '#7C3AED' },
         messagesEnabled: res.event.messagesEnabled ?? true,

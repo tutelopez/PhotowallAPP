@@ -68,6 +68,11 @@ archivedAt: {
         ref: 'User',
         required: true
 },
+pendingPlan: {
+  type: String,
+  enum: [...Object.values(PlanType), null],
+  default: null
+},
 reminderSentAt: {
   type: Date,
   default: null

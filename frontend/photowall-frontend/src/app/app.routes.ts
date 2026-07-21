@@ -34,6 +34,11 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+  path: 'precios',
+  loadComponent: () =>
+    import('./features/pricing/pricing').then(m => m.PricingComponent)
+},
+  {
     path: 'events/new',
     loadComponent: () =>
       import('./features/events/pages/event-form/event-form').then(m => m.EventFormComponent),

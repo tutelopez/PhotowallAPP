@@ -1,5 +1,5 @@
 import { transporter } from '../config/mailer';
-import { PLAN_LABELS, PlanType } from '../models/Plan';
+import { PLAN_LABELS, PlanType, PLAN_PRICES_COP } from '../models/Plan';
 
 const FROM = `"${process.env.SMTP_FROM_NAME || 'PhotoWall'}" <${process.env.SMTP_USER}>`;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:4200';
@@ -169,5 +169,56 @@ export const sendPasswordResetEmail = async (
     });
   } catch (err) {
     console.error('🔴 Error enviando correo de restablecimiento:', err);
+  }
+};
+
+export const sendPlanUpgradeRequestEmail = async (
+  organizer: { name: string; email: string },
+  event: { name: string; slug: string },
+  desiredPlan: PlanType
+) => {
+  try {
+    const planLabel = PLAN_LABELS[desiredPlan] ?? desiredPlan;
+    const price = PLAN_PRICES_COP[desiredPlan]?.toLocaleString('es-CO') ?? '?';
+    const html = wrapTemplate(
+      `Nueva solicitud de plan 💰`,
+      `
+      <p><strong>${organizer.name}</strong> (${organizer.email}) solicitó el <strong style="color:#A78BFA;">Plan ${planLabel}</strong> ($${price} COP) para el evento <strong>"${event.name}"</strong>.</p>
+      <p>Contáctalo para coordinar el pago y luego actívalo desde el panel de super admin.</p>
+      `
+    );
+    await transporter.sendMail({
+      from: FROM,
+      to: process.env.ADMIN_EMAIL,
+      subject: `💰 Solicitud de Plan ${planLabel} — ${organizer.name}`,
+      html
+    });
+  } catch (err) {
+    console.error('🔴 Error enviando notificación de solicitud de plan:', err);
+  }
+};
+
+export const sendPlanRequestConfirmationEmail = async (
+  user: { name: string; email: string },
+  event: { name: string },
+  desiredPlan: PlanType
+) => {
+  try {
+    const planLabel = PLAN_LABELS[desiredPlan] ?? desiredPlan;
+    const html = wrapTemplate(
+      `¡Recibimos tu solicitud! 📩`,
+      `
+      <p>Hola ${user.name}, recibimos tu solicitud del <strong style="color:#A78BFA;">Plan ${planLabel}</strong> para tu evento <strong>"${event.name}"</strong>.</p>
+      <p>Nos pondremos en contacto contigo en las próximas horas para coordinar el pago y activar tu plan.</p>
+      `
+    );
+    await transporter.sendMail({
+      from: FROM,
+      to: user.email,
+      subject: `📩 Recibimos tu solicitud del Plan ${planLabel}`,
+      html
+    });
+  } catch (err) {
+    console.error('🔴 Error enviando confirmación de solicitud de plan:', err);
   }
 };

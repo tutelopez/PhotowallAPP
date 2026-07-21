@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
 import * as EventService from '../service/Event.service';
 import { io } from '../app';
+import { sendPlanUpgradeRequestEmail, sendPlanRequestConfirmationEmail } from '../service/Email.service';
+import { UserModel } from '../models/User.model';
+import { PlanType } from '../models/Plan';
 
 export const create = async (req: Request, res: Response) => {
   try {
@@ -13,6 +16,7 @@ export const create = async (req: Request, res: Response) => {
       name: req.body.name,
       date: req.body.date,
       type: req.body.type,
+      desiredPlan: req.body.desiredPlan,
       organizerId,
 
       coverImage: (req.files as any)?.coverImage?.[0],
@@ -159,5 +163,30 @@ export const regenerateQR = async (req: Request, res: Response) => {
     res.json({ message: 'QR regenerado correctamente', event });
   } catch (error: any) {
     res.status(400).json({ message: error.message || 'Error regenerando QR' });
+  }
+};
+
+export const requestPlanUpgrade = async (req: Request, res: Response) => {
+  try {
+    const { eventId } = req.params;
+    const organizerId = (req as any).user.userId;
+    const { desiredPlan } = req.body;
+    const event = await EventService.requestPlanUpgrade(eventId, organizerId, desiredPlan);
+    res.json({ message: 'Solicitud registrada, te contactaremos pronto', event });
+    const organizer = await UserModel.findById(organizerId);
+    if (organizer) {
+      sendPlanUpgradeRequestEmail(
+        { name: organizer.name, email: organizer.email },
+        { name: event.name, slug: event.slug },
+        desiredPlan as PlanType
+      );
+      sendPlanRequestConfirmationEmail(
+        { name: organizer.name, email: organizer.email },
+        { name: event.name },
+        desiredPlan as PlanType
+      );
+    }
+  } catch (error: any) {
+    res.status(error.status || 400).json({ message: error.message });
   }
 };

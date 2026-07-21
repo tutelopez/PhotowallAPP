@@ -41,6 +41,8 @@ router.patch(
   EventController.toggleMessages
 );
 
+router.patch('/:eventId/request-plan-upgrade', ensureAuth([UserRole.ORGANIZER]), EventController.requestPlanUpgrade);
+
 router.patch('/:eventId/branding', ensureAuth([UserRole.ORGANIZER]), EventController.updateBranding);
 
 router.patch('/:eventId/regenerate-qr', ensureAuth([UserRole.ORGANIZER]), EventController.regenerateQR);

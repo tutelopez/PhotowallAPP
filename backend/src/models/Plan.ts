@@ -3,14 +3,20 @@ export enum PlanType {
   ESENCIAL = 'esencial',
   ESTANDAR = 'estandar',
   PREMIUM = 'premium'
-}
+};
+export const PLAN_PRICES_COP: Record<PlanType, number> = {
+  [PlanType.FREE]: 0,
+  [PlanType.ESENCIAL]: 55000,
+  [PlanType.ESTANDAR]: 95000,
+  [PlanType.PREMIUM]: 165000
+};
 export interface PlanLimits {
   maxPhotos: number | null;
   maxMessages: number | null;
   galleryDays: number | null;
   watermark: boolean;
   branding: boolean;
-}
+};
 export const PLAN_LABELS: Record<PlanType, string> = {
   [PlanType.FREE]: 'Gratis',
   [PlanType.ESENCIAL]: 'Esencial',

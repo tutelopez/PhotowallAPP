@@ -1,9 +1,12 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { EventsService } from '../../../../core/services/events';
 import { PhotoWallEventType } from '../../../../shared/enums/event-type.enum';
+import { PLAN_CATALOG, PlanType } from '../../../../shared/models/Plan.model';
+
+
 @Component({
   selector: 'app-event-form',
   standalone: true,
@@ -49,6 +52,26 @@ import { PhotoWallEventType } from '../../../../shared/enums/event-type.enum';
     accept="image/*"
     (change)="onProfileSelected($event)">
 </div>
+<div class="field">
+  <label>Plan del evento</label>
+  <div class="plan-picker">
+    @for (p of plans; track p.plan) {
+      <button type="button" class="plan-option" [class.plan-option--active]="selectedPlan() === p.plan"
+              (click)="selectedPlan.set(p.plan)">
+        <span class="plan-option-name">{{ p.name }}</span>
+        <span class="plan-option-price">
+          {{ p.priceCOP === 0 ? 'Gratis' : ('$' + (p.priceCOP | number:'1.0-0') + ' COP') }}
+        </span>
+      </button>
+    }
+  </div>
+  @if (selectedPlan() !== 'free') {
+    <p class="plan-note">
+      Tu evento se creará con el plan Gratis activo — te contactaremos para activar el plan elegido.
+    </p>
+  }
+</div>
+
           <div class="form-actions">
             <a routerLink="/dashboard" class="btn-pw-ghost">Cancelar</a>
             <button type="submit" class="btn-pw-primary"
@@ -89,16 +112,40 @@ import { PhotoWallEventType } from '../../../../shared/enums/event-type.enum';
       textarea { resize: vertical; }
     }
     .form-actions { display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem; }
+    .plan-picker { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.6rem; }
+.plan-option {
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px; padding: 0.7rem 0.6rem; cursor: pointer; text-align: center;
+  display: flex; flex-direction: column; gap: 0.2rem; transition: border-color 0.2s;
+}
+.plan-option--active { border-color: var(--pw-violet); background: rgba(124,58,237,0.12); }
+.plan-option-name { font-size: 0.85rem; font-weight: 600; color: #F8F7FF; }
+.plan-option-price { font-size: 0.75rem; color: rgba(248,247,255,0.5); }
+.plan-note { font-size: 0.78rem; color: rgba(248,247,255,0.45); margin-top: 0.6rem; }
   `]
 })
 export class EventFormComponent {
   private fb     = inject(FormBuilder);
   private events = inject(EventsService);
   private router = inject(Router);
+  private route  = inject(ActivatedRoute);
+
+ plans = PLAN_CATALOG;
+  selectedPlan = signal<PlanType>(PlanType.FREE);
+
+
   coverImage?: File;
   profileImage?: File;
   loading = signal(false);
   error   = signal('');
+
+ constructor() {
+    const qpPlan = this.route.snapshot.queryParamMap.get('plan') as PlanType | null;
+    if (qpPlan && Object.values(PlanType).includes(qpPlan)) {
+      this.selectedPlan.set(qpPlan);
+    }
+  }
+
  eventTypes: { value: PhotoWallEventType; label: string }[] = [
   {
     value: PhotoWallEventType.BODA,
@@ -139,17 +186,15 @@ export class EventFormComponent {
     this.loading.set(true);
     this.error.set('');
     const dto = {
-  ...this.form.getRawValue(),
-  coverImage: this.coverImage,
-  profileImage: this.profileImage
-};
+      ...this.form.getRawValue(),
+      coverImage: this.coverImage,
+      profileImage: this.profileImage,
+      desiredPlan: this.selectedPlan()
+    };
     this.events.createEvent(dto).subscribe({
-    next: (response) => {
-  this.router.navigate([
-    '/events',
-    response.event._id
-  ]);
-},
+      next: (response) => {
+        this.router.navigate(['/events', response.event._id]);
+      },
       error: (err) => {
         this.error.set(err.error?.message ?? 'Error al crear el evento');
         this.loading.set(false);

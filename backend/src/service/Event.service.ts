@@ -60,6 +60,9 @@ export const createEvent = async (data: any) => {
     profileImageUrl = result.secure_url;
   }
 
+  const pendingPlan =
+  data.desiredPlan && data.desiredPlan !== PlanType.FREE ? data.desiredPlan : null;
+
   return await EventModel.create({
     name: data.name,
     date: data.date, 
@@ -68,6 +71,7 @@ export const createEvent = async (data: any) => {
     qrCode,
     coverImage: coverImageUrl,
     profileImage: profileImageUrl,
+    pendingPlan,
     organizer: data.organizerId
   });
 };
@@ -80,7 +84,7 @@ export const getEventBySlug = async (slug: string) => {
   const usage = await getUsage(event._id.toString(), plan);
     const branding = event.branding || { accentColor: '#7C3AED' };
 
-  return { ...event, plan, usage, branding };
+  return { ...event, plan, usage, branding, pendingPlan: event.pendingPlan || null, };
 };
 
 export const getEventsByOrganizer = async (organizerId: string) => {
@@ -141,6 +145,7 @@ const usage = await getUsage(eventId, event.plan as PlanType);
       profileImage: event.profileImage,
       organizer: event.organizer,
       plan: event.plan,
+      pendingPlan: event.pendingPlan || null,
       messagesEnabled: event.messagesEnabled,
       branding: event.branding || { accentColor: '#7C3AED' },
     },
@@ -261,6 +266,27 @@ export const regenerateQR = async (eventId: string, organizerId: string) => {
   if (!event) throw new Error('Evento no encontrado o no autorizado');
   const eventUrl = `${process.env.FRONTEND_URL}/e/${event.slug}`;
   event.qrCode = await generateEventQR(eventUrl);
+  await event.save();
+  return event;
+};
+
+export const requestPlanUpgrade = async (
+  eventId: string,
+  organizerId: string,
+  desiredPlan: PlanType
+) => {
+  if (!Object.values(PlanType).includes(desiredPlan)) {
+    const err: any = new Error('Plan inválido');
+    err.status = 400;
+    throw err;
+  }
+  const event = await EventModel.findOne({ _id: eventId, organizer: organizerId });
+  if (!event) {
+    const err: any = new Error('Evento no encontrado o no autorizado');
+    err.status = 403;
+    throw err;
+  }
+  event.pendingPlan = desiredPlan === PlanType.FREE ? null : desiredPlan;
   await event.save();
   return event;
 };
