@@ -1,16 +1,45 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+
+import { Observable } from 'rxjs';
+
 import { environment } from '../../../../environments/environment';
-import { PlanType } from '../../shared/models/Plan.model';
-import { PaymentIntent } from '../../shared/models/Payment.model';
-@Injectable({ providedIn: 'root' })
-export class PaymentsService {
+
+@Injectable({
+  providedIn: 'root'
+})
+export class PaymentService {
+
   private http = inject(HttpClient);
-  private base = `${environment.apiUrl}/payments`;
-  createIntent(eventId: string, plan: PlanType) {
-    return this.http.post<PaymentIntent>(`${this.base}/create-intent`, { eventId, plan });
+
+  private api = `${environment.apiUrl}/payments`;
+
+  createOrder(eventId: string, plan: string): Observable<any> {
+
+    return this.http.post(
+
+      `${this.api}/create-order`,
+
+      {
+
+        eventId,
+
+        plan
+
+      }
+
+    );
+
   }
-  getStatus(orderId: string) {
-    return this.http.get<{ status: string; plan: string }>(`${this.base}/${orderId}/status`);
+
+  getPaymentStatus(orderId: string): Observable<any> {
+
+    return this.http.get(
+
+      `${this.api}/${orderId}/status`
+
+    );
+
   }
+
 }

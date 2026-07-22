@@ -1,0 +1,21 @@
+<div *ngIf="payment">
+
+<h2 *ngIf="payment.status=='approved'">
+
+🎉 Pago realizado correctamente
+
+</h2>
+
+<h2 *ngIf="payment.status=='pending'">
+
+Esperando confirmación...
+
+</h2>
+
+<h2 *ngIf="payment.status=='rejected'">
+
+Pago rechazado
+
+</h2>
+
+</div>

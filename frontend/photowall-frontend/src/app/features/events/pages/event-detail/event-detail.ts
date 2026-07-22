@@ -13,7 +13,6 @@ import { PLAN_CATALOG, PLAN_LABELS, PlanType } from '../../../../shared/models/P
 import {FormsModule} from '@angular/forms';
 import { PaymentsService } from '../../../../core/services/payments';
 import { BoldCheckoutService } from '../../../../core/services/bold-checkout';
-import { environment } from '../../../../../../environments/environment.production';
 
 interface ActivityNotification {
   id: string;
@@ -592,7 +591,6 @@ export class EventDetailComponent implements OnInit, OnDestroy {
   private socketSvc    = inject(SocketService);
   private paymentsSvc = inject(PaymentsService);
 private boldCheckout = inject(BoldCheckoutService);
-private environment = environment;
 cancelingPlan = signal(false);
 
 processingPayment = signal(false);
@@ -686,10 +684,6 @@ this.messagesSvc.getMessagesByEvent(ev._id).subscribe({
       },
       error: () => this.loading.set(false)
     });
-
-
-
-
   }
   ngOnDestroy() {
     this.socketSvc.disconnect();
@@ -847,9 +841,7 @@ payWithBold() {
   this.paymentsSvc.createIntent(event._id, this.upgradeChoice).subscribe({
     next: (intent) => {
       this.processingPayment.set(false);
-      const origin = environment.production ? window.location.origin : environment.publicTunnelUrl; // ej: 'https://abc123.ngrok-free.app'
-const redirectionUrl = `${origin}/events/${event._id}/payment-result`;
-
+      const redirectionUrl = `${window.location.origin}/events/${event._id}/payment-result?orderId=${intent.orderId}`;
       this.boldCheckout.open(intent, redirectionUrl);
     },
     error: () => this.processingPayment.set(false)

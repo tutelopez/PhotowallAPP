@@ -4,11 +4,16 @@ export enum PlanType {
   ESTANDAR = 'estandar',
   PREMIUM = 'premium'
 };
-export const PLAN_PRICES_COP: Record<PlanType, number> = {
-  [PlanType.FREE]: 0,
-  [PlanType.ESENCIAL]: 55000,
-  [PlanType.ESTANDAR]: 95000,
-  [PlanType.PREMIUM]: 165000
+export const PLAN_PRICES_USD: Record<PlanType, number> = {
+
+    [PlanType.FREE]:0,
+
+    [PlanType.ESENCIAL]:16.99,
+
+    [PlanType.ESTANDAR]:29.99,
+
+    [PlanType.PREMIUM]:49.99
+
 };
 export interface PlanLimits {
   maxPhotos: number | null;
