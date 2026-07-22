@@ -30,3 +30,11 @@ export const createGuestById = async (eventId: string, guestName: string) => {
   }
   return guest;
 };
+
+export const disableGuestById = async (eventId: string, guestId: string, organizerId: string) => {
+  const event = await EventModel.findOne({ _id: eventId, organizer: organizerId });
+  if (!event) throw new Error('No autorizado o evento no encontrado');
+  const guest = await GuestModel.findOneAndUpdate({ _id: guestId, event: eventId }, { isActive: false }, { new: true });
+  if (!guest) throw new Error('Invitado no encontrado');
+  return guest;
+};

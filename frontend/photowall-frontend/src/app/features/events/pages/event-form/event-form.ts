@@ -27,7 +27,7 @@ import { PLAN_CATALOG, PlanType } from '../../../../shared/models/Plan.model';
           </div>
           <div class="field">
             <label>Fecha</label>
-            <input type="date" formControlName="date">
+            <input type="date" formControlName="date" [min]="minDate">
           </div>
           <div class="field">
             <label>Tipo de evento</label>
@@ -60,7 +60,7 @@ import { PLAN_CATALOG, PlanType } from '../../../../shared/models/Plan.model';
               (click)="selectedPlan.set(p.plan)">
         <span class="plan-option-name">{{ p.name }}</span>
         <span class="plan-option-price">
-          {{ p.priceCOP === 0 ? 'Gratis' : ('$' + (p.priceCOP | number:'1.0-0') + ' COP') }}
+          {{ p.priceUSD === 0 ? 'Gratis' : ('$' + p.priceUSD + ' USD') }}
         </span>
       </button>
     }
@@ -132,6 +132,7 @@ export class EventFormComponent {
 
  plans = PLAN_CATALOG;
   selectedPlan = signal<PlanType>(PlanType.FREE);
+  minDate = new Date().toISOString().split('T')[0];
 
 
   coverImage?: File;

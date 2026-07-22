@@ -7,11 +7,11 @@ export interface Photo {
 
   imageUrl: string;
 
-  publicId: string;
+  publicId?: string;
 
   createdAt: string;
 
-  updatedAt: string;
+  updatedAt?: string;
 
     type: 'image' | 'video';
   duration?: number | null;

@@ -334,13 +334,13 @@
 // ── FOOTER ──────────────────────────────────────────────────────────────────
 
 .pw-footer {
-  padding: 2rem;
+  padding: 2.5rem 2rem;
   border-top: 1px solid rgba(255,255,255,0.06);
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 1.5rem;
   max-width: 1100px;
   margin: 0 auto;
 
@@ -350,7 +350,25 @@
   }
   .footer-links {
     display: flex; gap: 1.5rem;
-    a { color: rgba(248,247,255,0.4); font-size: 0.8rem; }
+    a {
+      color: rgba(248,247,255,0.5); font-size: 0.85rem; text-decoration: none;
+      transition: color 0.2s;
+      &:hover { color: #F8F7FF; }
+    }
   }
-  .footer-copy { color: rgba(248,247,255,0.25); font-size: 0.75rem; }
+  .footer-social {
+    display: flex; gap: 1rem; align-items: center;
+    a {
+      display: flex; align-items: center; justify-content: center;
+      width: 36px; height: 36px; border-radius: 50%;
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+      color: rgba(248,247,255,0.7); font-size: 1.1rem; text-decoration: none;
+      transition: all 0.2s ease;
+      &:hover {
+        background: rgba(124,58,237,0.2); border-color: rgba(124,58,237,0.5);
+        color: #F8F7FF; transform: translateY(-2px);
+      }
+    }
+  }
+  .footer-copy { color: rgba(248,247,255,0.3); font-size: 0.75rem; }
 }

@@ -75,4 +75,10 @@ sendEmoji(eventId: string, emoji: string) {
 onEmojiFloat(callback: (payload: EmojiFloatEvent) => void) {
   this.connect().on('emoji-float', callback);
 }
+onPhotoDeleted(callback: (payload: { _id: string }) => void) {
+  this.connect().on('photo-deleted', callback);
+}
+onGuestDisabled(callback: (payload: { guestId: string }) => void) {
+  this.connect().on('guest-disabled', callback);
+}
 }

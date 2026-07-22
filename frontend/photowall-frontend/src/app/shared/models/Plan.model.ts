@@ -44,7 +44,7 @@ export const PLAN_CATALOG: PlanCatalogEntry[] = [
     priceCOP: 55000,
     priceUSD: 16.99,
     tagline: 'Ideal para cumpleaños y reuniones pequeñas',
-    features: ['Hasta 100 fotos y videos', 'Hasta 50 mensajes en pantalla', 'Galería activa 30 días', 'Sin marca de agua']
+    features: ['Hasta 100 fotos y videos', 'Hasta 50 mensajes en pantalla', 'Galería activa 30 días', 'Sin marca de agua', 'Descarga en ZIP']
   },
   {
     plan: PlanType.ESTANDAR,

@@ -62,6 +62,8 @@ requestPlanUpgrade(eventId: string, desiredPlan: PlanType) {
         usage: res.usage,
         branding: res.event.branding ?? { accentColor: '#7C3AED' },
         messagesEnabled: res.event.messagesEnabled ?? true,
+        guests: res.guests?.list ?? [],
+        guestCount: res.guests?.total ?? (res.guests?.list?.length ?? 0),
       }))
     );
 }
@@ -95,6 +97,13 @@ regenerateQR(eventId: string) {
 cancelPendingPlan(eventId: string) {
   return this.http.patch<{ message: string; event: PhotoWallEvent }>(
     `${this.base}/${eventId}/cancel-pending-plan`,
+    {}
+  );
+}
+
+disableGuest(eventId: string, guestId: string) {
+  return this.http.patch<{ message: string; guest: any }>(
+    `${this.base}/${eventId}/guests/${guestId}/disable`,
     {}
   );
 }

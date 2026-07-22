@@ -20,5 +20,7 @@ export interface PhotoWallEvent {
   branding?: { accentColor: string };
   pendingPlan?: PlanType | null;
   desiredPlan?: PlanType | null;
-usage?: PlanUsage;
+  usage?: PlanUsage;
+  guests?: any[];
+  guestCount?: number;
 }

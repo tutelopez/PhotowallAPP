@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import * as controller from '../controller/Event.controller';
 import * as EventController from '../controller/Event.controller';
+import * as GuestController from '../controller/Guest.controller';
 import { ensureAuth } from '../middlewares/Auth.middlware';
 import { UserRole } from '../models/User.model';
 import { getEventManageData } from '../controller/Event.controller';
@@ -48,6 +49,9 @@ router.patch('/:eventId/branding', ensureAuth([UserRole.ORGANIZER]), EventContro
 router.patch('/:eventId/cancel-pending-plan', ensureAuth([UserRole.ORGANIZER]), EventController.cancelPendingPlan);
 
 router.patch('/:eventId/regenerate-qr', ensureAuth([UserRole.ORGANIZER]), EventController.regenerateQR);
+
+router.patch('/:eventId/guests/:guestId/disable', ensureAuth([UserRole.ORGANIZER]), GuestController.disableGuest);
+
 // ⚠️ SIEMPRE AL FINAL
 router.get('/:slug', controller.getBySlug);
 

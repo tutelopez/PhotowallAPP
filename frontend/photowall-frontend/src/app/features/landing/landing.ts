@@ -1,5 +1,6 @@
-import { Component, AfterViewInit, ElementRef, ViewChild } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, AfterViewInit, OnInit, inject } from '@angular/core';
+import { RouterLink, Router } from '@angular/router';
+import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-landing',
@@ -114,6 +115,7 @@ import { RouterLink } from '@angular/router';
         </p>
         <div class="cta-actions reveal">
           <a routerLink="/register" class="btn-pw-primary">Comenzar gratis →</a>
+          <a routerLink="/precios" class="btn-pw-ghost">Ver planes y precios →</a>
         </div>
         <p class="cta-note">Sin tarjeta de crédito · Listo en 60 segundos</p>
       </div>
@@ -127,14 +129,33 @@ import { RouterLink } from '@angular/router';
       <div class="footer-links">
         <a routerLink="/terminos">Términos</a>
         <a routerLink="/privacidad">Privacidad</a>
-        <a href="#">Contacto</a>
+        <a href="mailto:thefilesystem1024@gmail.com">Contacto</a>
+      </div>
+      <div class="footer-social">
+        <a href="#" target="_blank" title="Instagram" aria-label="Instagram">
+          <i class="bi bi-instagram"></i>
+        </a>
+        <a href="#" target="_blank" title="Facebook" aria-label="Facebook">
+          <i class="bi bi-facebook"></i>
+        </a>
+        <a href="mailto:thefilesystem1024@gmail.com" title="Correo" aria-label="Correo">
+          <i class="bi bi-envelope"></i>
+        </a>
       </div>
       <div class="footer-copy">© 2025 PhotoWall</div>
     </footer>
   `,
   styleUrl: './landing.scss'
 })
-export class LandingComponent implements AfterViewInit {
+export class LandingComponent implements OnInit, AfterViewInit {
+  private auth = inject(AuthService);
+  private router = inject(Router);
+
+  ngOnInit() {
+    if (this.auth.isAuthenticated()) {
+      this.router.navigate(['/dashboard']);
+    }
+  }
 
   photos = [
     { emoji: '🥂', author: 'Ana García',  isNew: true },

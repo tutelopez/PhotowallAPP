@@ -55,6 +55,7 @@ export const deletePhoto = async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ message: 'No autorizado' });
     }
     const photo = await PhotoService.deletePhoto(photoId, organizerId);
+    io.to(`event_${photo.event}`).emit('photo-deleted', { _id: photo._id });
     res.json({
       message: 'Foto eliminada correctamente',
       photo

@@ -38,7 +38,18 @@ import { GoogleSigninButtonComponent } from '../../../../shared/components/googl
           <div class="field">
             <label for="password">Contraseña</label>
             <input id="password" type="password" formControlName="password"
-                   placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+                   placeholder="Mín. 8 caracteres, mayúscula, minúscula y número" autocomplete="new-password">
+            @if (form.controls.password.touched && form.controls.password.invalid) {
+              <div class="field-error">
+                @if (form.controls.password.errors?.['required']) {
+                  <span>La contraseña es obligatoria.</span>
+                } @else if (form.controls.password.errors?.['minlength']) {
+                  <span>Mínimo 8 caracteres.</span>
+                } @else if (form.controls.password.errors?.['pattern']) {
+                  <span>Debe incluir mayúscula, minúscula y un número.</span>
+                }
+              </div>
+            }
           </div>
 
 <div class="checkbox-field">
@@ -114,6 +125,9 @@ import { GoogleSigninButtonComponent } from '../../../../shared/components/googl
         &::placeholder { color: rgba(248,247,255,0.3); }
         &:focus { border-color: rgba(124,58,237,0.6); }
       }
+      .field-error {
+        color: #f09595; font-size: 0.78rem; margin-top: 0.35rem; display: flex; flex-direction: column; gap: 0.15rem;
+      }
     }
     .w-full { width: 100%; justify-content: center; margin-top: 0.5rem; }
     .auth-footer {
@@ -156,7 +170,7 @@ export class RegisterComponent {
   form = this.fb.nonNullable.group({
     name:     ['', Validators.required],
     email:    ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(6)]],
+    password: ['', [Validators.required, Validators.minLength(8), Validators.pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/)]],
     acceptedTerms: [false, Validators.requiredTrue],
   });
 

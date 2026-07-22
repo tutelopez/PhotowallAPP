@@ -129,7 +129,14 @@ const MAX_ACTIVITY_LOG = 30;
         </div>
         <div class="detail-inner">
           <div class="plan-summary">
-            <span class="plan-badge">{{ planLabel() }}</span>
+            <div class="plan-badges-row">
+              <span class="plan-badge">{{ planLabel() }}</span>
+              @if (galleryTimerInfo(); as t) {
+                <span class="expiry-badge" [class.expiry-badge--expired]="t.expired">
+                  <i class="bi bi-clock-history"></i> {{ t.text }}
+                </span>
+              }
+            </div>
             <div class="usage-bar">
               <span>Fotos: {{ event()!.usage?.currentPhotos }} / {{ event()!.usage?.maxPhotos ?? '∞' }}</span>
               <div class="usage-track">
@@ -245,6 +252,35 @@ const MAX_ACTIVITY_LOG = 30;
               </div>
             </div>
           </div>
+          <!-- Invitados Section -->
+          <div class="guests-section pw-card" style="margin-bottom: 2rem;">
+            <div class="guests-header">
+              <h3>Invitados conectados ({{ (event()!.guests ?? []).length }})</h3>
+              <span class="guests-note">Aquí puedes ver quién se ha unido y desactivar su acceso si es necesario.</span>
+            </div>
+            @if ((event()!.guests ?? []).length === 0) {
+              <div class="no-photos-yet">
+                Aún no hay invitados registrados en este evento.
+              </div>
+            } @else {
+              <div class="guests-list">
+                @for (g of event()!.guests ?? []; track g._id || g.id) {
+                  <div class="guest-item">
+                    <div class="guest-info">
+                      <div class="guest-avatar">{{ (g.name || '?')[0].toUpperCase() }}</div>
+                      <div>
+                        <strong>{{ g.name }}</strong>
+                        <span class="guest-time">Se unió: {{ g.createdAt ? (g.createdAt | date:'short') : 'Recientemente' }}</span>
+                      </div>
+                    </div>
+                    <button class="btn-pw-ghost btn-sm btn-danger-ghost" (click)="disableGuest(g._id || g.id, g.name)">
+                      <i class="bi bi-person-x-fill"></i> Desactivar acceso
+                    </button>
+                  </div>
+                }
+              </div>
+            }
+          </div>
           <!-- Fotos -->
           <div class="photos-section">
             <div class="photos-header">
@@ -340,6 +376,7 @@ const MAX_ACTIVITY_LOG = 30;
     position: fixed; top: 1.25rem; right: 1.25rem; z-index: 200;
     display: flex; flex-direction: column; gap: 0.6rem;
     max-width: min(360px, calc(100vw - 2.5rem));
+    pointer-events: none;
   }
   .notif-toast {
     display: flex; align-items: flex-start; gap: 0.7rem;
@@ -347,6 +384,7 @@ const MAX_ACTIVITY_LOG = 30;
     border-radius: 12px; padding: 0.8rem 0.9rem;
     box-shadow: 0 12px 30px rgba(0,0,0,0.45);
     animation: notif-in 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    pointer-events: auto;
   }
   .notif-toast--leaving { animation: notif-out 0.3s ease forwards; }
   @keyframes notif-in {
@@ -363,20 +401,25 @@ const MAX_ACTIVITY_LOG = 30;
   }
   .notif-icon--photo   { background: rgba(124,58,237,0.2); color: #A78BFA; }
   .notif-icon--message { background: rgba(244,114,182,0.18); color: var(--pw-rose); }
-  .notif-icon--guest   { background: rgba(93,202,165,0.18); color: #5dcaa5; }
-  .notif-body { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
-  .notif-body strong { font-size: 0.85rem; color: var(--pw-cream); }
-  .notif-body span { font-size: 0.8rem; color: rgba(248,247,255,0.65); word-break: break-word; }
-  .notif-close {
-    background: none; border: none; color: rgba(248,247,255,0.4); cursor: pointer;
-    margin-left: auto; padding: 2px; line-height: 1; flex-shrink: 0;
-    &:hover { color: rgba(248,247,255,0.8); }
+  .notif-icon--guest   { background: rgba(56,189,248,0.18); color: #38BDF8; }
+  .notif-body {
+    flex: 1; display: flex; flex-direction: column; gap: 0.15rem; font-size: 0.85rem;
+    strong { color: #F8F7FF; font-weight: 600; }
+    span   { color: rgba(248,247,255,0.65); }
   }
-  /* ---- Campana y panel de actividad ---- */
-  .bell-wrapper { position: relative; }
-  .bell-btn { position: relative; }
-  .bell-badge {
-    position: absolute; top: -6px; right: -6px;
+  .notif-close {
+    background: none; border: none; color: rgba(248,247,255,0.4);
+    cursor: pointer; font-size: 1.1rem; padding: 0; line-height: 1;
+    &:hover { color: #F8F7FF; }
+  }
+  /* ---- Panel de actividad reciente (Header Dropdown) ---- */
+  .activity-bell-wrapper {
+    position: relative; display: inline-block;
+  }
+  .btn-bell {
+    position: relative;
+  }
+  .badge-count {
     background: var(--pw-rose); color: #1a0b14;
     font-size: 0.65rem; font-weight: 800; line-height: 1;
     min-width: 18px; height: 18px; border-radius: 999px;
@@ -403,7 +446,7 @@ const MAX_ACTIVITY_LOG = 30;
     &:hover { background: rgba(255,255,255,0.04); }
   }
   .admin-photo-img video { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .detail-page { min-height: 100vh; background: var(--pw-ink); }
+    .detail-page { min-height: 100vh; background: var(--pw-ink); padding-top: 72px; }
     .detail-inner { max-width: 960px; margin: 0 auto; padding: 0 2rem 4rem; }
     .loading-state { display: flex; justify-content: center; padding: 6rem 0; }
     /* ---- Hero ---- */
@@ -581,6 +624,36 @@ const MAX_ACTIVITY_LOG = 30;
 }
 .upgrade-picker--paid .upgrade-select,
 .upgrade-picker--paid button { width: 100%; }
+.plan-badges-row { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+.expiry-badge {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3); color: #34d399;
+  border-radius: 100px; padding: 0.25rem 0.8rem; font-size: 0.75rem; font-weight: 600;
+}
+.expiry-badge--expired {
+  background: rgba(244,63,94,0.15); border: 1px solid rgba(244,63,94,0.3); color: #fb7185;
+}
+.guests-section { padding: 1.5rem; }
+.guests-header { margin-bottom: 1.25rem; }
+.guests-header h3 { font-family: 'Syne', sans-serif; font-size: 1.2rem; margin: 0 0 0.3rem; }
+.guests-note { font-size: 0.8rem; color: rgba(248,247,255,0.55); }
+.guests-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
+.guest-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px; padding: 0.75rem 1rem;
+}
+.guest-info { display: flex; align-items: center; gap: 0.75rem; min-width: 0; }
+.guest-avatar {
+  width: 38px; height: 38px; border-radius: 50%; background: var(--pw-violet); color: var(--pw-cream);
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1rem; flex-shrink: 0;
+}
+.guest-time { display: block; font-size: 0.7rem; color: rgba(248,247,255,0.45); }
+.btn-danger-ghost {
+  color: #f87171; border-color: rgba(248,113,113,0.3); background: rgba(248,113,113,0.08);
+  padding: 0.4rem 0.7rem; font-size: 0.75rem; white-space: nowrap;
+}
+.btn-danger-ghost:hover { background: rgba(248,113,113,0.18); border-color: rgba(248,113,113,0.5); }
 .upgrade-label {
   margin: 0 0 0.25rem;
   font-size: 0.78rem;
@@ -642,6 +715,30 @@ pendingPlanLabel = computed(() => {
 });
 
 
+  galleryTimerInfo = computed(() => {
+    const ev = this.event();
+    if (!ev || !ev.date) return null;
+    const daysMap: Record<string, number> = {
+      free: 3,
+      esencial: 30,
+      estandar: 180,
+      premium: 365
+    };
+    const days = daysMap[ev.plan] ?? 3;
+    const expiresAt = new Date(ev.date).getTime() + days * 86400000;
+    const now = Date.now();
+    const diff = expiresAt - now;
+    if (diff <= 0) {
+      return { text: 'Galería caducada', expired: true };
+    }
+    const daysLeft = Math.floor(diff / 86400000);
+    if (daysLeft > 0) {
+      return { text: `Galería activa por ${daysLeft} día${daysLeft === 1 ? '' : 's'} más`, expired: false };
+    }
+    const hoursLeft = Math.max(1, Math.floor(diff / 3600000));
+    return { text: `Galería activa por ${hoursLeft} hora${hoursLeft === 1 ? '' : 's'} más`, expired: false };
+  });
+
   guestUrl = () => `${window.location.origin}/e/${this.event()?.slug}`;
   planLabel = computed(() => PLAN_LABELS[this.event()?.plan!] ?? 'Gratis');
   photosUsagePercent = computed(() => {
@@ -676,20 +773,86 @@ this.messagesSvc.getMessagesByEvent(ev._id).subscribe({
             { _id: msg._id, event: ev._id, authorName: msg.authorName, text: msg.text, createdAt: msg.createdAt },
             ...list
           ]);
+          this.event.update(e => {
+            if (!e) return null;
+            return {
+              ...e,
+              usage: {
+                ...e.usage!,
+                currentMessages: (e.usage?.currentMessages ?? 0) + 1
+              }
+            };
+          });
           this.pushNotification('message', 'Nuevo mensaje', `${msg.authorName}: "${msg.text}"`);
         });
         this.socketSvc.onMessageDeleted(({ _id }) => {
           this.messages.update(list => list.filter(m => m._id !== _id));
+          this.event.update(e => {
+            if (!e) return null;
+            return {
+              ...e,
+              usage: {
+                ...e.usage!,
+                currentMessages: Math.max(0, (e.usage?.currentMessages ?? 1) - 1)
+              }
+            };
+          });
         });
         this.socketSvc.onNewPhoto((photo: NewPhotoEvent) => {
+          this.photos.update(list => [
+            { _id: photo._id, event: ev._id, uploadedBy: photo.uploadedBy, imageUrl: photo.imageUrl, createdAt: photo.createdAt, type: photo.type, duration: photo.duration, publicId: '', updatedAt: photo.createdAt },
+            ...list
+          ]);
+          this.event.update(e => {
+            if (!e) return null;
+            return {
+              ...e,
+              usage: {
+                ...e.usage!,
+                currentPhotos: (e.usage?.currentPhotos ?? 0) + 1
+              }
+            };
+          });
           this.pushNotification(
             'photo',
             'Nueva foto',
             `${photo.uploadedBy} subió ${photo.type === 'video' ? 'un video' : 'una foto'}`
           );
         });
+        this.socketSvc.onPhotoDeleted(({ _id }) => {
+          this.photos.update(list => list.filter(p => p._id !== _id));
+          this.event.update(e => {
+            if (!e) return null;
+            return {
+              ...e,
+              usage: {
+                ...e.usage!,
+                currentPhotos: Math.max(0, (e.usage?.currentPhotos ?? 1) - 1)
+              }
+            };
+          });
+        });
         this.socketSvc.onGuestJoined((guest: GuestJoinedEvent) => {
           this.pushNotification('guest', 'Nuevo invitado', `${guest.name} se unió al evento`);
+          this.event.update(e => {
+            if (!e) return null;
+            const newGuest = { _id: guest._id, id: guest._id, name: guest.name, createdAt: guest.joinedAt };
+            return {
+              ...e,
+              guests: [newGuest, ...(e.guests ?? [])],
+              guestCount: (e.guestCount ?? (e.guests?.length ?? 0)) + 1
+            };
+          });
+        });
+        this.socketSvc.onGuestDisabled(({ guestId }) => {
+          this.event.update(e => {
+            if (!e) return null;
+            return {
+              ...e,
+              guests: (e.guests ?? []).filter(g => (g._id !== guestId && g.id !== guestId)),
+              guestCount: Math.max(0, (e.guestCount ?? 1) - 1)
+            };
+          });
         });
         this.brandingColor.set(ev.branding?.accentColor || '#7C3AED');
 
@@ -754,6 +917,26 @@ this.messagesSvc.getMessagesByEvent(ev._id).subscribe({
       this.deletingMessageId.set(null);
       this.toast.error('No se pudo eliminar el mensaje. Intenta de nuevo.');
     }
+  });
+}
+
+disableGuest(guestId: string, guestName: string) {
+  const ev = this.event();
+  if (!ev || !guestId) return;
+  if (!confirm(`¿Desactivar el acceso del invitado "${guestName}"? Ya no podrá subir fotos ni mensajes.`)) return;
+  this.evSvc.disableGuest(ev._id, guestId).subscribe({
+    next: () => {
+      this.toast.success(`Acceso desactivado para ${guestName}`);
+      this.event.update(e => {
+        if (!e) return null;
+        return {
+          ...e,
+          guests: (e.guests ?? []).filter(g => (g._id !== guestId && g.id !== guestId)),
+          guestCount: Math.max(0, (e.guestCount ?? 1) - 1)
+        };
+      });
+    },
+    error: () => this.toast.error('No se pudo desactivar el acceso del invitado.')
   });
 }
   toggleMessages() {
