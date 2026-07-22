@@ -42,15 +42,14 @@ export const createPaypalOrder = async (
     const existingPayment = await PaymentModel.findOne({
         event: event._id,
         organizer: organizerId,
-        status: "pending"
+        status: PaymentStatus.PENDING
     });
 
+    // Si ya había un pago pendiente (usuario abandonó el flujo anterior),
+    // lo cancelamos automáticamente para permitir el reintento.
     if (existingPayment) {
-        const err: any = new Error(
-            "Ya existe un pago pendiente para este evento. Finalízalo o cancélalo antes de crear uno nuevo."
-        );
-        err.status = 409;
-        throw err;
+        existingPayment.status = PaymentStatus.CANCELLED;
+        await existingPayment.save();
     }
 
     const amount = PLAN_PRICES_USD[plan];
