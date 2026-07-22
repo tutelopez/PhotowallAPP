@@ -155,8 +155,11 @@ const MAX_ACTIVITY_LOG = 30;
       {{ cancelingPlan() ? 'Cancelando…' : 'Cancelar' }}
     </button>
   </div>
-} @else {
-  <div class="upgrade-picker">
+} @else if (event()!.plan !== 'premium') {
+  <div class="upgrade-picker" [class.upgrade-picker--paid]="event()!.plan !== 'free'">
+    @if (event()!.plan !== 'free') {
+      <p class="upgrade-label">⬆️ Mejorar mi plan</p>
+    }
     <select [(ngModel)]="upgradeChoice" class="upgrade-select">
       @for (p of plans; track p.plan) {
         @if (p.plan !== event()!.plan && p.plan !== 'free') {
@@ -165,7 +168,7 @@ const MAX_ACTIVITY_LOG = 30;
       }
     </select>
     <button class="btn-pw-primary btn-sm" (click)="payWithPayPal()" [disabled]="processingPayment()">
-      {{ processingPayment() ? 'Redirigiendo a PayPal…' : 'Pagar con PayPal' }}
+      {{ processingPayment() ? 'Redirigiendo a PayPal…' : (event()!.plan === 'free' ? 'Pagar con PayPal' : 'Mejorar plan con PayPal') }}
     </button>
   </div>
 }
@@ -568,6 +571,24 @@ const MAX_ACTIVITY_LOG = 30;
 .skeleton-photo { aspect-ratio: 1; }
 .skeleton-message { height: 60px; border: 1px solid var(--pw-card-border); }
 .upgrade-picker { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; }
+.upgrade-picker--paid {
+  flex-direction: column;
+  align-items: flex-start;
+  background: rgba(124,58,237,0.08);
+  border: 1px solid rgba(124,58,237,0.2);
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
+}
+.upgrade-picker--paid .upgrade-select,
+.upgrade-picker--paid button { width: 100%; }
+.upgrade-label {
+  margin: 0 0 0.25rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: rgba(167,139,250,0.9);
+  text-transform: uppercase;
+}
 .upgrade-select {
   background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
   border-radius: 10px; padding: 0.5rem 0.75rem; color: #F8F7FF; font-size: 0.85rem;
