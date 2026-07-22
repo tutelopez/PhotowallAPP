@@ -22,6 +22,7 @@ import { AuthService } from '../../core/services/auth.service';
             <a routerLink="/" fragment="como-funciona">Cómo funciona</a>
             <a routerLink="/" fragment="funciones">Funciones</a>
             <a routerLink="/precios" routerLinkActive="active">Precios</a>
+            <a routerLink="/faqs" routerLinkActive="active">FAQs</a>
             <a routerLink="/login" class="btn-ghost-sm">Iniciar sesión</a>
             <a routerLink="/register" class="btn-primary-sm">Crear evento</a>
           </div>
@@ -29,6 +30,7 @@ import { AuthService } from '../../core/services/auth.service';
           <div class="pw-nav__links">
             <a routerLink="/dashboard" routerLinkActive="active">Mis eventos</a>
             <a routerLink="/precios" routerLinkActive="active">Precios</a>
+            <a routerLink="/faqs" routerLinkActive="active">FAQs</a>
             <a routerLink="/events/new" class="btn-primary-sm">+ Nuevo evento</a>
             <button class="btn-ghost-sm" (click)="auth.logout()">Salir</button>
           </div>

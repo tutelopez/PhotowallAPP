@@ -49,6 +49,11 @@ export const routes: Routes = [
     import('./features/pricing/pricing').then(m => m.PricingComponent)
 },
 {
+  path: 'faqs',
+  loadComponent: () =>
+    import('./features/faqs/faqs').then(m => m.FaqsComponent)
+},
+{
   path: 'events/:id/payment-result',
   loadComponent: () =>
     import('./features/events/pages/payment-result/payment-result').then(m => m.PaymentResultComponent),

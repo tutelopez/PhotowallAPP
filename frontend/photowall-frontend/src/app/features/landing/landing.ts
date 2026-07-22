@@ -105,6 +105,36 @@ import { AuthService } from '../../core/services/auth.service';
       </div>
     </section>
 
+    <!-- FAQ PREVIEW -->
+    <section class="faq-preview-section">
+      <div class="section-inner">
+        <p class="section-label reveal">¿Dudas?</p>
+        <h2 class="section-title reveal">Preguntas Frecuentes</h2>
+        <p class="section-desc reveal">Resuelve tus inquietudes sobre cómo funciona PhotoWall en tus eventos.</p>
+        
+        <div class="faq-preview-grid reveal">
+          <div class="faq-preview-card pw-card">
+            <h4>¿Los invitados deben descargar alguna app?</h4>
+            <p>No, los invitados únicamente escanean el código QR con la cámara de su teléfono o abren el enlace en el navegador web.</p>
+          </div>
+          <div class="faq-preview-card pw-card">
+            <h4>¿Se requiere pagar mensualidad?</h4>
+            <p>No hay suscripciones. Solo pagas una vez por cada evento según el plan que prefieras, o puedes usar el plan Gratis siempre que quieras.</p>
+          </div>
+          <div class="faq-preview-card pw-card">
+            <h4>¿Cómo descargo todas las fotos?</h4>
+            <p>En tu panel de organizador cuentas con la opción de descargar un archivo ZIP en alta resolución con todas las fotos y videos.</p>
+          </div>
+        </div>
+        
+        <div class="faq-preview-btn reveal" style="text-align: center; margin-top: 2.5rem;">
+          <a routerLink="/faqs" class="btn-pw-ghost">
+            <i class="bi bi-question-circle"></i> Ver todas las preguntas frecuentes (12) →
+          </a>
+        </div>
+      </div>
+    </section>
+
     <!-- CTA -->
     <section class="cta-section" id="empezar">
       <div class="cta-glow"></div>
@@ -127,6 +157,8 @@ import { AuthService } from '../../core/services/auth.service';
         <span style="color:#F472B6">●</span> PhotoWall
       </div>
       <div class="footer-links">
+        <a routerLink="/faqs">FAQs</a>
+        <a routerLink="/precios">Precios</a>
         <a routerLink="/terminos">Términos</a>
         <a routerLink="/privacidad">Privacidad</a>
         <a href="mailto:thefilesystem1024@gmail.com">Contacto</a>
