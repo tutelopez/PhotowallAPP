@@ -13,6 +13,8 @@ import {
       deleteEventsByOrganizer,
       deleteOrganizer,
       getAllEvents,
+      getAllPayments,
+      getSystemStats,
       deleteAllEvents,
       resetAllData,
       seedDatabase 
@@ -30,6 +32,8 @@ router.post('/super-admin', createSuperAdmin);
 router.use(requireSuperAdmin);
 
 // GET (SUPER ADMIN)
+router.get('/stats', ensureAuth([UserRole.SUPER_ADMIN]), getSystemStats);
+router.get('/payments', ensureAuth([UserRole.SUPER_ADMIN]), getAllPayments);
 router.get('/organizers', ensureAuth([UserRole.SUPER_ADMIN]), getAllOrganizers);
 router.get('/organizers/:organizerId/events', ensureAuth([UserRole.SUPER_ADMIN]), getEventsByOrganizer);
 router.get('/organizers/:organizerId/guests', ensureAuth([UserRole.SUPER_ADMIN]), getGuestsByOrganizer);

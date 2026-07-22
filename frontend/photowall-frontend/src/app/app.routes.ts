@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
-import { authGuard } from './core/guards/auth.guard'
+import { authGuard } from './core/guards/auth.guard';
+import { superAdminGuard } from './core/guards/superadmin.guard';
 
 export const routes: Routes = [
   {
@@ -18,15 +19,15 @@ export const routes: Routes = [
       import('./features/auth/pages/register/register').then(m => m.RegisterComponent)
   },
   {
-  path: 'forgot-password',
-  loadComponent: () =>
-    import('./features/auth/pages/forgot-password/forgot-password').then(m => m.ForgotPasswordComponent)
-},
-{
-  path: 'reset-password',
-  loadComponent: () =>
-    import('./features/auth/pages/reset-password/reset-password').then(m => m.ResetPasswordComponent)
-},
+    path: 'forgot-password',
+    loadComponent: () =>
+      import('./features/auth/pages/forgot-password/forgot-password').then(m => m.ForgotPasswordComponent)
+  },
+  {
+    path: 'reset-password',
+    loadComponent: () =>
+      import('./features/auth/pages/reset-password/reset-password').then(m => m.ResetPasswordComponent)
+  },
   {
     path: 'dashboard',
     loadComponent: () =>
@@ -34,31 +35,37 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
-  path: 'terminos',
-  loadComponent: () =>
-    import('./features/legal/pages/terms/terms').then(m => m.TermsComponent)
-},
-{
-  path: 'privacidad',
-  loadComponent: () =>
-    import('./features/legal/pages/privacy/privacy').then(m => m.PrivacyComponent)
-},
+    path: 'superadmin',
+    loadComponent: () =>
+      import('./features/admin/superadmin').then(m => m.SuperAdminComponent),
+    canActivate: [superAdminGuard]
+  },
   {
-  path: 'precios',
-  loadComponent: () =>
-    import('./features/pricing/pricing').then(m => m.PricingComponent)
-},
-{
-  path: 'faqs',
-  loadComponent: () =>
-    import('./features/faqs/faqs').then(m => m.FaqsComponent)
-},
-{
-  path: 'events/:id/payment-result',
-  loadComponent: () =>
-    import('./features/events/pages/payment-result/payment-result').then(m => m.PaymentResultComponent),
-  canActivate: [authGuard]
-},
+    path: 'terminos',
+    loadComponent: () =>
+      import('./features/legal/pages/terms/terms').then(m => m.TermsComponent)
+  },
+  {
+    path: 'privacidad',
+    loadComponent: () =>
+      import('./features/legal/pages/privacy/privacy').then(m => m.PrivacyComponent)
+  },
+  {
+    path: 'precios',
+    loadComponent: () =>
+      import('./features/pricing/pricing').then(m => m.PricingComponent)
+  },
+  {
+    path: 'faqs',
+    loadComponent: () =>
+      import('./features/faqs/faqs').then(m => m.FaqsComponent)
+  },
+  {
+    path: 'events/:id/payment-result',
+    loadComponent: () =>
+      import('./features/events/pages/payment-result/payment-result').then(m => m.PaymentResultComponent),
+    canActivate: [authGuard]
+  },
   {
     path: 'events/new',
     loadComponent: () =>

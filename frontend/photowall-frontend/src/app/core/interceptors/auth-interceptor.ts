@@ -8,9 +8,19 @@ const AUTH_ENDPOINTS = ['/auth/login', '/auth/register', '/auth/google'];
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
   const token = authService.getToken();
+  const user = authService.getCurrentUser();
+
+  let setHeaders: Record<string, string> = {};
+  if (token) {
+    setHeaders['Authorization'] = `Bearer ${token}`;
+    const id = (user as any)?._id || (user as any)?.id;
+    if (id && ((user as any)?.role === 'super_admin')) {
+      setHeaders['x-admin-id'] = id.toString();
+    }
+  }
 
   const cloned = token
-    ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } })
+    ? req.clone({ setHeaders })
     : req;
 
   return next(cloned).pipe(

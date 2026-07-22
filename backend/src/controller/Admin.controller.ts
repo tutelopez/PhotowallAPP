@@ -9,6 +9,8 @@ import bcrypt from 'bcrypt';
 import { GuestModel } from '../models/Guest.model';
 import { PlanType } from '../models/Plan';
 import { sendPlanThankYouEmail } from '../service/Email.service';
+import { MessageModel } from '../models/Message.model';
+import { PaymentModel, PaymentStatus } from '../models/Payment.model';
 
 
 const SUPER_ADMIN_SECRET = process.env.SUPER_ADMIN_SECRET;
@@ -106,9 +108,23 @@ export const getAllOrganizers = async (_req: Request, res: Response) => {
     role: UserRole.ORGANIZER
   }).sort({ createdAt: -1 });
 
+  const organizersWithStats = await Promise.all(
+    organizers.map(async (org) => {
+      const [eventsCount, premiumEventsCount] = await Promise.all([
+        EventModel.countDocuments({ organizer: org._id }),
+        EventModel.countDocuments({ organizer: org._id, plan: { $ne: PlanType.FREE } })
+      ]);
+      return {
+        ...org.toObject(),
+        eventsCount,
+        premiumEventsCount
+      };
+    })
+  );
+
   res.json({
-    total: organizers.length,
-    organizers
+    total: organizersWithStats.length,
+    organizers: organizersWithStats
   });
 };
 
@@ -120,9 +136,23 @@ export const getEventsByOrganizer = async (req: Request, res: Response) => {
     organizer: organizerId
   }).sort({ date: -1 });
 
+  const eventsWithStats = await Promise.all(
+    events.map(async (ev) => {
+      const [photos, messages, guests] = await Promise.all([
+        PhotoModel.countDocuments({ event: ev._id }),
+        MessageModel.countDocuments({ event: ev._id }),
+        UserModel.countDocuments({ role: UserRole.GUEST, event: ev._id })
+      ]);
+      return {
+        ...ev.toObject(),
+        stats: { photos, messages, guests }
+      };
+    })
+  );
+
   res.json({
-    total: events.length,
-    events
+    total: eventsWithStats.length,
+    events: eventsWithStats
   });
 };
 
@@ -281,15 +311,9 @@ export const deleteOrganizer = async (req: Request, res: Response) => {
 //ver todos los eventos
 export const getAllEvents = async (req: Request, res: Response) => {
   try {
-    const adminId = req.header('x-admin-id');
+    const admin = (req as any).superAdmin || await UserModel.findById(req.header('x-admin-id') || (req as any).user?.userId);
 
-    if (!adminId) {
-      return res.status(401).json({ message: 'adminId es requerido' });
-    }
-
-    const admin = await UserModel.findById(adminId);
-
-    if (!admin || admin.role !== 'super_admin') {
+    if (!admin || admin.role !== UserRole.SUPER_ADMIN && admin.role !== 'super_admin') {
       return res.status(403).json({ message: 'Acceso solo para SuperAdmin' });
     }
 
@@ -297,9 +321,23 @@ export const getAllEvents = async (req: Request, res: Response) => {
       .populate('organizer', 'name email role')
       .sort({ createdAt: -1 });
 
+    const eventsWithStats = await Promise.all(
+      events.map(async (ev) => {
+        const [photos, messages, guests] = await Promise.all([
+          PhotoModel.countDocuments({ event: ev._id }),
+          MessageModel.countDocuments({ event: ev._id }),
+          UserModel.countDocuments({ role: UserRole.GUEST, event: ev._id })
+        ]);
+        return {
+          ...ev.toObject(),
+          stats: { photos, messages, guests }
+        };
+      })
+    );
+
     return res.json({
-      total: events.length,
-      events
+      total: eventsWithStats.length,
+      events: eventsWithStats
     });
   } catch (error) {
     console.error(error);
@@ -307,23 +345,66 @@ export const getAllEvents = async (req: Request, res: Response) => {
   }
 };
 
+//ver todos los pagos (SUPER ADMIN)
+export const getAllPayments = async (_req: Request, res: Response) => {
+  try {
+    const payments = await PaymentModel.find()
+      .populate('organizer', 'name email')
+      .populate('event', 'name slug')
+      .sort({ createdAt: -1 });
+
+    const totalRevenue = payments
+      .filter(p => p.status === PaymentStatus.APPROVED)
+      .reduce((acc, curr) => acc + (curr.amount || 0), 0);
+
+    res.json({
+      total: payments.length,
+      totalRevenue,
+      payments
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error al obtener los pagos' });
+  }
+};
+
+//ver estadísticas generales del sistema (SUPER ADMIN)
+export const getSystemStats = async (_req: Request, res: Response) => {
+  try {
+    const [totalOrganizers, totalEvents, totalPhotos, totalMessages, totalGuests, payments] = await Promise.all([
+      UserModel.countDocuments({ role: UserRole.ORGANIZER }),
+      EventModel.countDocuments(),
+      PhotoModel.countDocuments(),
+      MessageModel.countDocuments(),
+      UserModel.countDocuments({ role: UserRole.GUEST }),
+      PaymentModel.find({ status: PaymentStatus.APPROVED })
+    ]);
+
+    const totalRevenue = payments.reduce((acc, curr) => acc + (curr.amount || 0), 0);
+    const premiumEvents = await EventModel.countDocuments({ plan: { $ne: PlanType.FREE } });
+
+    res.json({
+      totalOrganizers,
+      totalEvents,
+      premiumEvents,
+      totalPhotos,
+      totalMessages,
+      totalGuests,
+      totalRevenue
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error al obtener estadísticas del sistema' });
+  }
+};
+
 //eliminar todos los eventos
 export const deleteAllEvents = async (req: Request, res: Response) => {
   try {
-    const adminId = req.header('x-admin-id');
+    const admin = (req as any).superAdmin || await UserModel.findById(req.header('x-admin-id') || (req as any).user?.userId);
 
-    if (!adminId) {
-      return res.status(401).json({
-        message: 'adminId es requerido'
-      });
-    }
-
-    const admin = await UserModel.findById(adminId);
-
-    if (!admin || admin.role !== UserRole.SUPER_ADMIN) {
-      return res.status(403).json({
-        message: 'Acceso permitido solo para SuperAdmin'
-      });
+    if (!admin || admin.role !== UserRole.SUPER_ADMIN && admin.role !== 'super_admin') {
+      return res.status(403).json({ message: 'Acceso permitido solo para SuperAdmin' });
     }
 
     const result = await EventModel.deleteMany({});
@@ -344,16 +425,10 @@ export const deleteAllEvents = async (req: Request, res: Response) => {
 //ELMINA TODO BASE DE DATOS
 export const resetAllData = async (req: Request, res: Response) => {
   try {
-    const adminId = req.header('x-admin-id');
     const confirm = req.header('x-confirm'); // confirmación explícita
+    const admin = (req as any).superAdmin || await UserModel.findById(req.header('x-admin-id') || (req as any).user?.userId);
 
-    if (!adminId) {
-      return res.status(401).json({ message: 'adminId es requerido' });
-    }
-
-    const admin = await UserModel.findById(adminId);
-
-    if (!admin || admin.role !== UserRole.SUPER_ADMIN) {
+    if (!admin || admin.role !== UserRole.SUPER_ADMIN && admin.role !== 'super_admin') {
       return res.status(403).json({ message: 'Solo SuperAdmin puede ejecutar esta acción' });
     }
 
@@ -390,15 +465,9 @@ export const resetAllData = async (req: Request, res: Response) => {
 //poblar base de datos con datos para prueba
 export const seedDatabase = async (req: Request, res: Response) => {
   try {
-    const adminId = req.header('x-admin-id');
+    const admin = (req as any).superAdmin || await UserModel.findById(req.header('x-admin-id') || (req as any).user?.userId);
 
-    if (!adminId) {
-      return res.status(401).json({ message: 'x-admin-id header es requerido' });
-    }
-
-    const admin = await UserModel.findById(adminId);
-
-    if (!admin || admin.role !== UserRole.SUPER_ADMIN) {
+    if (!admin || admin.role !== UserRole.SUPER_ADMIN && admin.role !== 'super_admin') {
       return res.status(403).json({ message: 'Solo SuperAdmin puede ejecutar esta acción' });
     }
 

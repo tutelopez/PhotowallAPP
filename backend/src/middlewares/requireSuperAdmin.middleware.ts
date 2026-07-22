@@ -1,5 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
 import { UserModel, UserRole } from '../models/User.model';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'supersecret';
 
 export const requireSuperAdmin = async (
   req: Request,
@@ -7,12 +10,23 @@ export const requireSuperAdmin = async (
   next: NextFunction
 ) => {
   try {
-    // adminId enviado por header (RECOMENDADO)
-    const adminId = req.header('x-admin-id');
+    // 1️⃣ Intentar obtener de x-admin-id
+    let adminId = req.header('x-admin-id');
+
+    // 2️⃣ Si no viene x-admin-id, intentar extraer del token JWT Bearer
+    if (!adminId && req.headers.authorization?.startsWith('Bearer ')) {
+      try {
+        const token = req.headers.authorization.split(' ')[1];
+        const decoded: any = jwt.verify(token, JWT_SECRET);
+        adminId = decoded.userId || decoded.id;
+      } catch (err) {
+        // Si el token es inválido, seguiremos verificando abajo
+      }
+    }
 
     if (!adminId) {
       return res.status(401).json({
-        message: 'adminId es requerido'
+        message: 'Acceso no autorizado: se requiere token JWT de SuperAdmin o header x-admin-id'
       });
     }
 
@@ -24,8 +38,15 @@ export const requireSuperAdmin = async (
       });
     }
 
-    // opcional: adjuntar admin al request
-    req.superAdmin = admin;
+    // Adjuntar admin al request
+    (req as any).superAdmin = admin;
+    (req as any).user = {
+      id: admin._id.toString(),
+      userId: admin._id.toString(),
+      name: admin.name,
+      email: admin.email,
+      role: admin.role
+    };
 
     next();
   } catch (error) {

@@ -200,11 +200,13 @@ submit() {
   this.auth.login(this.form.getRawValue())
     .subscribe({
 
-      next: () => {
-
-        this.router.navigate(['/dashboard']);
-
-      },
+        next: (res) => {
+          if (res.user?.role === 'super_admin') {
+            this.router.navigate(['/superadmin']);
+          } else {
+            this.router.navigate(['/dashboard']);
+          }
+        },
 
       error: err => {
 this.rateLimited.set(err.status === 429);
@@ -231,9 +233,14 @@ onGoogleCredential(credential: string) {
     this.loading.set(true);
     this.error.set('');
     this.rateLimited.set(false); // 👈 reset
-this.sessionExpired.set(false);
     this.auth.loginWithGoogle(credential).subscribe({
-      next: () => this.router.navigate(['/dashboard']),
+      next: (res) => {
+        if (res.user?.role === 'super_admin') {
+          this.router.navigate(['/superadmin']);
+        } else {
+          this.router.navigate(['/dashboard']);
+        }
+      },
       error: err => {
               this.rateLimited.set(err.status === 429);
         this.error.set(err.error?.message ?? 'Error al iniciar sesión con Google');

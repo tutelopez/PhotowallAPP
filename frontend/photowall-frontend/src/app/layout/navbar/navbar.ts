@@ -28,6 +28,9 @@ import { AuthService } from '../../core/services/auth.service';
           </div>
         } @else {
           <div class="pw-nav__links">
+            @if (auth.getCurrentUser()?.role === 'super_admin') {
+              <a routerLink="/superadmin" routerLinkActive="active" style="color:#EC4899; font-weight:800;">👑 SuperAdmin</a>
+            }
             <a routerLink="/dashboard" routerLinkActive="active">Mis eventos</a>
             <a routerLink="/precios" routerLinkActive="active">Precios</a>
             <a routerLink="/faqs" routerLinkActive="active">FAQs</a>
