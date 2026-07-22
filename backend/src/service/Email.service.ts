@@ -1,5 +1,5 @@
 import { transporter } from '../config/mailer';
-import { PLAN_LABELS, PlanType, PLAN_PRICES_COP } from '../models/Plan';
+import { PLAN_LABELS, PlanType, PLAN_PRICES_USD } from '../models/Plan';
 
 const FROM = `"${process.env.SMTP_FROM_NAME || 'PhotoWall'}" <${process.env.SMTP_USER}>`;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:4200';
@@ -179,7 +179,7 @@ export const sendPlanUpgradeRequestEmail = async (
 ) => {
   try {
     const planLabel = PLAN_LABELS[desiredPlan] ?? desiredPlan;
-    const price = PLAN_PRICES_COP[desiredPlan]?.toLocaleString('es-CO') ?? '?';
+    const price = PLAN_PRICES_USD[desiredPlan] ? `$${PLAN_PRICES_USD[desiredPlan].toFixed(2)} USD` : '?';
     const html = wrapTemplate(
       `Nueva solicitud de plan 💰`,
       `

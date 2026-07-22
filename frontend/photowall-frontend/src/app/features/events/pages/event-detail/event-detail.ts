@@ -12,7 +12,6 @@ import { ToastService } from '../../../../core/services/toast'; // 👈 nuevo
 import { PLAN_CATALOG, PLAN_LABELS, PlanType } from '../../../../shared/models/Plan.model';
 import {FormsModule} from '@angular/forms';
 import { PaymentsService } from '../../../../core/services/payments';
-import { BoldCheckoutService } from '../../../../core/services/bold-checkout';
 
 interface ActivityNotification {
   id: string;
@@ -148,9 +147,9 @@ const MAX_ACTIVITY_LOG = 30;
   <div class="pending-plan-note">
     ⏳ Procesando tu pago del Plan {{ pendingPlanLabel() }}…
   </div>
-  <div class="upgrade-picker">
-    <button class="btn-pw-primary btn-sm" (click)="payWithBold()" [disabled]="processingPayment()">
-      {{ processingPayment() ? 'Abriendo Bold…' : 'Reintentar pago' }}
+    <div class="upgrade-picker">
+    <button class="btn-pw-primary btn-sm" (click)="payWithPayPal()" [disabled]="processingPayment()">
+      {{ processingPayment() ? 'Redirigiendo a PayPal…' : 'Reintentar pago' }}
     </button>
     <button class="btn-pw-ghost btn-sm" (click)="cancelPendingPlan()" [disabled]="cancelingPlan()">
       {{ cancelingPlan() ? 'Cancelando…' : 'Cancelar' }}
@@ -161,12 +160,12 @@ const MAX_ACTIVITY_LOG = 30;
     <select [(ngModel)]="upgradeChoice" class="upgrade-select">
       @for (p of plans; track p.plan) {
         @if (p.plan !== event()!.plan && p.plan !== 'free') {
-          <option [value]="p.plan">{{ p.name }} — \${{ p.priceCOP | number:'1.0-0' }} COP</option>
+          <option [value]="p.plan">{{ p.name }} &mdash; {{ p.priceUSD | currency:'USD' }}</option>
         }
       }
     </select>
-    <button class="btn-pw-primary btn-sm" (click)="payWithBold()" [disabled]="processingPayment()">
-      {{ processingPayment() ? 'Abriendo Bold…' : 'Pagar con Bold' }}
+    <button class="btn-pw-primary btn-sm" (click)="payWithPayPal()" [disabled]="processingPayment()">
+      {{ processingPayment() ? 'Redirigiendo a PayPal…' : 'Pagar con PayPal' }}
     </button>
   </div>
 }
@@ -589,8 +588,7 @@ export class EventDetailComponent implements OnInit, OnDestroy {
   private photoSvc     = inject(PhotosService);
   private messagesSvc  = inject(MessagesService);
   private socketSvc    = inject(SocketService);
-  private paymentsSvc = inject(PaymentsService);
-private boldCheckout = inject(BoldCheckoutService);
+private paymentsSvc = inject(PaymentsService);
 cancelingPlan = signal(false);
 
 processingPayment = signal(false);
@@ -834,17 +832,21 @@ requestUpgrade() {
   });
 }
 
-payWithBold() {
+payWithPayPal() {
   const event = this.event();
   if (!event) return;
   this.processingPayment.set(true);
-  this.paymentsSvc.createIntent(event._id, this.upgradeChoice).subscribe({
-    next: (intent) => {
+  this.paymentsSvc.createOrder(event._id, this.upgradeChoice).subscribe({
+    next: (order) => {
       this.processingPayment.set(false);
-      const redirectionUrl = `${window.location.origin}/events/${event._id}/payment-result?orderId=${intent.orderId}`;
-      this.boldCheckout.open(intent, redirectionUrl);
+      window.location.href = order.approveUrl;
     },
-    error: () => this.processingPayment.set(false)
+    error: (err) => {
+      this.processingPayment.set(false);
+      this.toast.error(
+        err?.error?.message || 'No se pudo iniciar el pago. Intenta de nuevo.'
+      );
+    }
   });
 }
 

@@ -10,6 +10,7 @@ import adminRoutes from './routes/Admin.routes';
 import authRoutes from './routes/Auth.routes';
 import messageRoutes from './routes/Message.routes';
 import paymentRoutes from './routes/Payment.routes';
+import webhookRoutes from './routes/Webhook.routes';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -27,6 +28,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/webhook', webhookRoutes);
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   if (err instanceof multer.MulterError) {
     if (err.code === 'LIMIT_FILE_SIZE') {

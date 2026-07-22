@@ -7,7 +7,7 @@ class PaypalService {
     private readonly baseUrl = process.env.PAYPAL_BASE_URL!;
 
     /**
-     * Obtiene el Access Token OAuth2
+     * Obtiene el Access Token OAuth2 de PayPal
      */
     async getAccessToken(): Promise<string> {
 
@@ -39,147 +39,181 @@ class PaypalService {
 
     }
 
+    /**
+     * Crea una orden de pago en PayPal (paso 1 del flujo)
+     */
     async createOrder(
 
-    orderId:string,
+        orderId: string,
 
-    amount:number,
+        amount: number,
 
-    returnUrl:string,
+        returnUrl: string,
 
-    cancelUrl:string
+        cancelUrl: string
 
-){
+    ) {
 
-    const token = await this.getAccessToken();
+        const token = await this.getAccessToken();
 
-    const response = await axios.post(
+        const response = await axios.post(
 
-        `${this.baseUrl}/v2/checkout/orders`,
+            `${this.baseUrl}/v2/checkout/orders`,
 
-        {
+            {
 
-            intent:"CAPTURE",
+                intent: "CAPTURE",
 
-            purchase_units:[
+                purchase_units: [
 
-                {
+                    {
 
-                    reference_id:orderId,
+                        reference_id: orderId,
 
-                    amount:{
+                        amount: {
 
-                        currency_code:"USD",
+                            currency_code: "USD",
 
-                        value:amount.toFixed(2)
+                            value: amount.toFixed(2)
+
+                        }
 
                     }
 
+                ],
+
+                application_context: {
+
+                    return_url: returnUrl,
+
+                    cancel_url: cancelUrl,
+
+                    user_action: "PAY_NOW",
+
+                    shipping_preference: "NO_SHIPPING"
+
                 }
 
-            ],
+            },
 
-            application_context:{
+            {
 
-                return_url:returnUrl,
+                headers: {
 
-                cancel_url:cancelUrl,
+                    Authorization: `Bearer ${token}`,
 
-                user_action:"PAY_NOW",
+                    "Content-Type": "application/json"
 
-                shipping_preference:"NO_SHIPPING"
-
-            }
-
-        },
-
-        {
-
-            headers:{
-
-                Authorization:`Bearer ${token}`,
-
-                "Content-Type":"application/json"
+                }
 
             }
 
-        }
+        );
 
-    );
+        return response.data;
 
-    return response.data;
+    }
 
-}
+    /**
+     * Extrae el link de aprobación de una orden de PayPal
+     */
+    getApproveLink(order: any) {
 
-getApproveLink(order:any){
+        return order.links.find(
 
-    return order.links.find(
+            (link: any) => link.rel === "approve"
 
-        (link:any)=>link.rel==="approve"
+        )?.href;
 
-    )?.href;
+    }
 
-}
+    /**
+     * Captura el pago de una orden aprobada por el usuario (paso 2 del flujo)
+     */
+    async captureOrder(paypalOrderId: string) {
 
-async verifyWebhookSignature(
+        const token = await this.getAccessToken();
 
-    headers:any,
+        const response = await axios.post(
 
-    body:any
+            `${this.baseUrl}/v2/checkout/orders/${paypalOrderId}/capture`,
 
-){
+            {},
 
-    const token = await this.getAccessToken();
+            {
 
-    const response = await axios.post(
+                headers: {
 
-        `${this.baseUrl}/v1/notifications/verify-webhook-signature`,
+                    Authorization: `Bearer ${token}`,
 
-        {
+                    "Content-Type": "application/json"
 
-            transmission_id:
-
-headers["paypal-transmission-id"],
-
-            transmission_time:
-
-headers["paypal-transmission-time"],
-
-            cert_url:
-
-headers["paypal-cert-url"],
-
-            auth_algo:
-
-headers["paypal-auth-algo"],
-
-            transmission_sig:
-
-headers["paypal-transmission-sig"],
-
-            webhook_id:
-
-process.env.PAYPAL_WEBHOOK_ID,
-
-            webhook_event:body
-
-        },
-
-        {
-
-            headers:{
-
-                Authorization:`Bearer ${token}`
+                }
 
             }
 
-        }
+        );
 
-    );
+        return response.data;
 
-    return response.data.verification_status==="SUCCESS";
+    }
 
-}
+    /**
+     * Verifica la firma de un webhook de PayPal (seguridad)
+     */
+    async verifyWebhookSignature(
+
+        headers: any,
+
+        body: any
+
+    ) {
+
+        const token = await this.getAccessToken();
+
+        const response = await axios.post(
+
+            `${this.baseUrl}/v1/notifications/verify-webhook-signature`,
+
+            {
+
+                transmission_id:
+                    headers["paypal-transmission-id"],
+
+                transmission_time:
+                    headers["paypal-transmission-time"],
+
+                cert_url:
+                    headers["paypal-cert-url"],
+
+                auth_algo:
+                    headers["paypal-auth-algo"],
+
+                transmission_sig:
+                    headers["paypal-transmission-sig"],
+
+                webhook_id:
+                    process.env.PAYPAL_WEBHOOK_ID,
+
+                webhook_event: body
+
+            },
+
+            {
+
+                headers: {
+
+                    Authorization: `Bearer ${token}`
+
+                }
+
+            }
+
+        );
+
+        return response.data.verification_status === "SUCCESS";
+
+    }
 
 }
 

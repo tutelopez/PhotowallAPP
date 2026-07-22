@@ -12,7 +12,11 @@ const requiredEnvs = [
   'SMTP_USER',
   'SMTP_PASS',
   'SMTP_FROM_NAME',
-  'FRONTEND_URL' 
+  'FRONTEND_URL',
+  'PAYPAL_CLIENT_ID',
+  'PAYPAL_CLIENT_SECRET',
+  'PAYPAL_BASE_URL',
+  'PAYPAL_WEBHOOK_ID'
 ];
 export const checkEnv = async () => {
   console.log('🔍 Verificando variables de entorno...');

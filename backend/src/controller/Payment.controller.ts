@@ -9,10 +9,22 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
     const organizerId = req.user?.userId;
     if (!organizerId) return res.status(401).json({ message: 'No autorizado' });
     if (!eventId || !plan) return res.status(400).json({ message: 'eventId y plan son obligatorios' });
-    const intent = await PaymentService.createPaypalOrder(eventId, organizerId, plan as PlanType);
-    res.json(intent);
+    const order = await PaymentService.createPaypalOrder(eventId, organizerId, plan as PlanType);
+    res.json(order);
   } catch (error: any) {
-    res.status(error.status || 500).json({ message: error.message || 'Error creando la intención de pago' });
+    res.status(error.status || 500).json({ message: error.message || 'Error creando la orden de pago' });
+  }
+};
+
+export const captureOrder = async (req: AuthRequest, res: Response) => {
+  try {
+    const { orderId } = req.params;
+    const organizerId = req.user?.userId;
+    if (!organizerId) return res.status(401).json({ message: 'No autorizado' });
+    const payment = await PaymentService.capturePaypalOrder(orderId, organizerId);
+    res.json({ status: payment.status, plan: payment.plan });
+  } catch (error: any) {
+    res.status(error.status || 500).json({ message: error.message || 'Error capturando el pago' });
   }
 };
 

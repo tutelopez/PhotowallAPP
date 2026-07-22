@@ -1,57 +1,34 @@
-import { Component } from '@angular/core';
-
+import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { PaymentsService } from '../../../core/services/payments';
 
-import { PaymentService } from '../../../core/services/payments';
-
+/**
+ * Componente legacy — ya no tiene ruta registrada.
+ * La página de resultado de pago es PaymentResultComponent (/events/:id/payment-result).
+ */
 @Component({
-
-selector:'app-payment-success',
-
-templateUrl:'./payment-success.component.html',
-
+  selector: 'app-payment-success',
+  standalone: true,
+  template: `<p>Redirigiendo...</p>`
 })
+export class PaymentSuccessComponent implements OnInit {
+  constructor(
+    private route: ActivatedRoute,
+    private paymentService: PaymentsService
+  ) {}
 
-export class PaymentSuccessComponent{
+  payment: any;
 
-constructor(
+  ngOnInit() {
+    this.route.queryParams.subscribe(params => {
+      const orderId = params['orderId'];
+      if (orderId) this.checkPayment(orderId);
+    });
+  }
 
-private route:ActivatedRoute,
-
-private paymentService:PaymentService
-
-){}
-
-payment:any;
-
-ngOnInit(){
-
-this.route.queryParams.subscribe(params=>{
-
-const orderId=params['orderId'];
-
-this.checkPayment(orderId);
-
-});
-
-}
-
-checkPayment(orderId:string){
-
-this.paymentService
-
-.getPaymentStatus(orderId)
-
-.subscribe({
-
-next:(payment)=>{
-
-this.payment=payment;
-
-}
-
-});
-
-}
-
+  checkPayment(orderId: string) {
+    this.paymentService.getStatus(orderId).subscribe({
+      next: (payment) => { this.payment = payment; }
+    });
+  }
 }

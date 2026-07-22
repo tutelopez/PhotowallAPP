@@ -23,11 +23,11 @@ import { DecimalPipe } from '@angular/common';
             <h3>{{ p.name }}</h3>
             <p class="plan-tagline">{{ p.tagline }}</p>
             <div class="plan-price">
-              @if (p.priceCOP === 0) {
+              @if (p.priceUSD === 0) {
                 <span class="price-amount">Gratis</span>
               } @else {
-                <span class="price-amount">\${{ p.priceCOP | number:'1.0-0' }}</span>
-                <span class="price-unit">COP / evento</span>
+                <span class="price-amount">&#36;{{ p.priceUSD }}</span>
+                <span class="price-unit">USD / evento</span>
               }
             </div>
             <ul class="plan-features">
