@@ -41,7 +41,13 @@ export class PaymentResultComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.eventId = this.route.snapshot.paramMap.get('id') ?? '';
     this.orderId = this.route.snapshot.queryParamMap.get('orderId') ?? '';
+      const boldStatus = this.route.snapshot.queryParamMap.get('bold-tx-status');
+
     if (!this.orderId) return;
+     // Optimista: si Bold ya nos dice el estado, lo mostramos de una vez
+  if (boldStatus === 'rejected') {
+    this.status.set('rejected');
+  }
     this.checkStatus();
     this.poll = setInterval(() => this.checkStatus(), 3000);
   }
