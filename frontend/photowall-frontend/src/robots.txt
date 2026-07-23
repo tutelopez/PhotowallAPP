@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard/
+Disallow: /superadmin/
+Disallow: /projection/
+Disallow: /e/
+
+Sitemap: https://photowall.com/sitemap.xml
