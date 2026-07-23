@@ -183,7 +183,6 @@ export const updateEvent = async (
 
   // ✏️ actualizar texto
   if (data.name) event.name = data.name;
-  if (data.date) event.date = data.date;
 
   // 🖼️ actualizar portada
   if (data.coverImage) {

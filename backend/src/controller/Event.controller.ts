@@ -44,7 +44,6 @@ export const update = async (req: Request, res: Response) => {
 
     const data = {
       name: req.body.name,
-      date: req.body.date,
 
       coverImage: (req.files as any)?.coverImage?.[0],
       profileImage: (req.files as any)?.profileImage?.[0]

@@ -87,6 +87,9 @@ const MAX_ACTIVITY_LOG = 30;
               <a [href]="'/e/' + event()!.slug" target="_blank" class="btn-pw-primary">
                 <i class="bi bi-box-arrow-up-right"></i> Ver galería
               </a>
+              <button class="btn-pw-ghost" (click)="openEditModal()">
+                <i class="bi bi-pencil-square"></i> Editar
+              </button>
               <button class="btn-pw-ghost" (click)="toggleMessages()" [disabled]="togglingMessages()">
                 <i class="bi" [class.bi-chat-dots-fill]="event()!.messagesEnabled" [class.bi-chat-dots]="!event()!.messagesEnabled"></i>
                 {{ event()!.messagesEnabled ? 'Mensajes activados' : 'Mensajes desactivados' }}
@@ -369,8 +372,62 @@ const MAX_ACTIVITY_LOG = 30;
         </div>
       }
     </div>
+
+    <!-- Edit Event Modal -->
+    @if (showEditModal()) {
+      <div class="modal-backdrop" (click)="closeEditModal()">
+        <div class="modal-card" (click)="$event.stopPropagation()">
+          <header class="modal-header">
+            <h3>Editar Evento</h3>
+            <button class="btn-icon" (click)="closeEditModal()"><i class="bi bi-x-lg"></i></button>
+          </header>
+          <div class="modal-body">
+            <div class="form-group">
+              <label>Nombre del Evento</label>
+              <input type="text" [(ngModel)]="editName" class="form-input" placeholder="Nombre de tu evento">
+            </div>
+            <div class="form-group">
+              <label>Foto de Portada</label>
+              <input type="file" (change)="onEditFileSelected($event, 'cover')" accept="image/*" class="file-input">
+              <small class="hint">Se recomienda formato horizontal (16:9)</small>
+            </div>
+            <div class="form-group">
+              <label>Foto de Perfil</label>
+              <input type="file" (change)="onEditFileSelected($event, 'profile')" accept="image/*" class="file-input">
+              <small class="hint">Logo o foto cuadrada</small>
+            </div>
+          </div>
+          <footer class="modal-footer">
+            <button class="btn-pw-ghost" (click)="closeEditModal()" [disabled]="editEventLoading()">Cancelar</button>
+            <button class="btn-pw-primary" (click)="saveEditEvent()" [disabled]="editEventLoading()">
+              @if (editEventLoading()) {
+                <span class="pw-spinner-sm"></span> Guardando...
+              } @else {
+                Guardar Cambios
+              }
+            </button>
+          </footer>
+        </div>
+      </div>
+    }
   `,
   styles: [`
+  /* ---- Edit Event Modal ---- */
+  .modal-backdrop { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 999; padding: 1rem; }
+  .modal-card { background: #1a1a2e; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; width: 100%; max-width: 500px; display: flex; flex-direction: column; overflow: hidden; animation: scaleUp 0.2s ease; }
+  .modal-header { padding: 1.2rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; }
+  .modal-header h3 { margin: 0; font-size: 1.25rem; font-family: 'Syne', sans-serif; }
+  .btn-icon { background: rgba(255,255,255,0.05); border: none; color: #fff; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .modal-body { padding: 1.5rem; display: flex; flex-direction: column; gap: 1.2rem; }
+  .form-group { display: flex; flex-direction: column; gap: 0.5rem; }
+  .form-group label { font-size: 0.85rem; font-weight: 600; color: rgba(248,247,255,0.8); }
+  .form-input, .file-input { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15); color: #fff; padding: 0.7rem 1rem; border-radius: 8px; outline: none; }
+  .form-input:focus { border-color: #8B5CF6; }
+  .file-input { padding: 0.5rem; }
+  .hint { font-size: 0.75rem; color: rgba(248,247,255,0.5); }
+  .modal-footer { padding: 1.2rem 1.5rem; border-top: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: flex-end; gap: 1rem; background: rgba(0,0,0,0.2); }
+  @keyframes scaleUp { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
   /* ---- Notificaciones toast ---- */
   .notif-stack {
     position: fixed; top: 1.25rem; right: 1.25rem; z-index: 200;
@@ -714,6 +771,13 @@ pendingPlanLabel = computed(() => {
   return p ? (PLAN_LABELS[p] ?? p) : '';
 });
 
+// Edit Event State
+showEditModal = signal(false);
+editName = signal('');
+editCoverFile = signal<File | null>(null);
+editProfileFile = signal<File | null>(null);
+editEventLoading = signal(false);
+
 
   galleryTimerInfo = computed(() => {
     const ev = this.event();
@@ -994,6 +1058,68 @@ disableGuest(guestId: string, guestName: string) {
   onColorChange(e: Event) {
   const value = (e.target as HTMLInputElement).value;
   this.brandingColor.set(value);
+}
+
+openEditModal() {
+  const ev = this.event();
+  if (!ev) return;
+  this.editName.set(ev.name);
+  this.editCoverFile.set(null);
+  this.editProfileFile.set(null);
+  this.showEditModal.set(true);
+}
+
+closeEditModal() {
+  this.showEditModal.set(false);
+}
+
+onEditFileSelected(event: any, type: 'cover' | 'profile') {
+  const file = event.target.files[0];
+  if (type === 'cover') {
+    this.editCoverFile.set(file);
+  } else {
+    this.editProfileFile.set(file);
+  }
+}
+
+saveEditEvent() {
+  const ev = this.event();
+  if (!ev) return;
+  this.editEventLoading.set(true);
+
+  const data: any = {};
+  if (this.editName() !== ev.name && this.editName().trim() !== '') {
+    data.name = this.editName().trim();
+  }
+  if (this.editCoverFile()) data.coverImage = this.editCoverFile();
+  if (this.editProfileFile()) data.profileImage = this.editProfileFile();
+
+  if (Object.keys(data).length === 0) {
+    this.editEventLoading.set(false);
+    this.closeEditModal();
+    return;
+  }
+
+  this.evSvc.updateEvent(ev._id, data).subscribe({
+    next: (res) => {
+      this.toast.success('Evento actualizado correctamente');
+      this.event.update(e => {
+        if (!e) return null;
+        return {
+          ...e,
+          name: data.name || e.name,
+          coverImage: res.event.coverImage || e.coverImage,
+          profileImage: res.event.profileImage || e.profileImage
+        };
+      });
+      this.editEventLoading.set(false);
+      this.closeEditModal();
+    },
+    error: () => {
+      this.toast.error('No se pudo actualizar el evento');
+      this.editEventLoading.set(false);
+    }
+  });
 }
 
 saveBranding() {

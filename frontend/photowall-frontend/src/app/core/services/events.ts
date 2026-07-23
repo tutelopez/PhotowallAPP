@@ -26,6 +26,14 @@ export class EventsService {
   if (dto.profileImage) formData.append('profileImage', dto.profileImage);
   return this.http.post<{ message: string; event: PhotoWallEvent }>(this.base, formData);
 }
+
+updateEvent(eventId: string, data: { name?: string; coverImage?: File; profileImage?: File }) {
+  const formData = new FormData();
+  if (data.name) formData.append('name', data.name);
+  if (data.coverImage) formData.append('coverImage', data.coverImage);
+  if (data.profileImage) formData.append('profileImage', data.profileImage);
+  return this.http.put<{ message: string; event: PhotoWallEvent }>(`${this.base}/${eventId}`, formData);
+}
 requestPlanUpgrade(eventId: string, desiredPlan: PlanType) {
   return this.http.patch<{ message: string; event: PhotoWallEvent }>(
     `${this.base}/${eventId}/request-plan-upgrade`,
