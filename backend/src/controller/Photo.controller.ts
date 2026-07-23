@@ -14,6 +14,14 @@ export const uploadPhoto = async (req: Request, res: Response) => {
   try {
     const { eventId, guestId } = req.body;
     if (!req.file) return res.status(400).json({ message: 'La foto es obligatoria' });
+    
+    // Validar límite de peso de archivo (10MB fotos, 60MB videos)
+    if (req.file.mimetype.startsWith('image/') && req.file.size > 10 * 1024 * 1024) {
+      return res.status(400).json({ message: 'Las fotos no pueden pesar más de 10MB' });
+    }
+    if (req.file.mimetype.startsWith('video/') && req.file.size > 60 * 1024 * 1024) {
+      return res.status(400).json({ message: 'Los videos no pueden pesar más de 60MB' });
+    }
     if (!eventId) return res.status(400).json({ message: 'eventId es obligatorio' });
     if (!guestId) return res.status(400).json({ message: 'guestId es obligatorio' });
     let guest = await UserModel.findOne({ _id: guestId, role: UserRole.GUEST });

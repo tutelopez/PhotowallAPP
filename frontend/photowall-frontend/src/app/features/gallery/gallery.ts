@@ -42,6 +42,10 @@ import { SocketService } from '../../core/services/socket';
             <form [formGroup]="joinForm" (ngSubmit)="join()">
               <input type="text" formControlName="name"
                      placeholder="Tu nombre" class="join-input">
+              <div class="terms-checkbox">
+                <input type="checkbox" formControlName="acceptTerms" id="acceptTerms">
+                <label for="acceptTerms">Acepto los <a href="/legal/terminos" target="_blank">Términos</a> y <a href="/legal/privacidad" target="_blank">Privacidad</a> al unirme.</label>
+              </div>
               <button type="submit" class="btn-pw-primary w-full"
                       [disabled]="joiningLoading() || joinForm.invalid">
                 @if (joiningLoading()) { Entrando… } @else { Entrar al evento →}
@@ -200,6 +204,14 @@ import { SocketService } from '../../core/services/socket';
       &:focus { border-color: rgba(124,58,237,0.6); }
     }
     .w-full { width: 100%; justify-content: center; }
+    .terms-checkbox {
+      display: flex; align-items: flex-start; gap: 0.6rem;
+      margin-bottom: 1.25rem; text-align: left;
+      input { margin-top: 0.25rem; accent-color: var(--pw-rose); cursor: pointer; }
+      label { color: rgba(248,247,255,0.65); font-size: 0.8rem; line-height: 1.4; cursor: pointer; }
+      a { color: var(--pw-violet-light); text-decoration: none; font-weight: 600; }
+      a:hover { text-decoration: underline; }
+    }
 
     /* ---- Hero (portada + perfil + título + fecha) ---- */
     .event-hero { position: relative; margin-bottom: 0.5rem; }
@@ -380,7 +392,8 @@ export class GalleryComponent implements OnInit, OnDestroy {
   commentError = signal<string | null>(null);
 
   joinForm = this.fb.nonNullable.group({
-    name: ['', Validators.required]
+    name: ['', Validators.required],
+    acceptTerms: [false, Validators.requiredTrue]
   });
 
   private pollInterval?: ReturnType<typeof setInterval>;

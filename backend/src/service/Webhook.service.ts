@@ -4,7 +4,7 @@ import { PaymentModel, PaymentStatus } from "../models/Payment.model";
 import { EventModel } from "../models/Event.model";
 import { UserModel } from "../models/User.model";
 import { PlanType } from "../models/Plan";
-import { sendPlanThankYouEmail } from "./Email.service";
+import { sendPlanThankYouEmail, sendPaymentRejectedEmail } from "./Email.service";
 import PaypalService from "./Paypal.service";
 
 /**
@@ -135,6 +135,17 @@ async function handlePaymentFailed(event: any) {
     await payment.save();
 
     await EventModel.findByIdAndUpdate(payment.event, { pendingPlan: null });
+
+    const dbEvent = await EventModel.findById(payment.event);
+    if (dbEvent) {
+        const organizer = await UserModel.findById(payment.organizer);
+        if (organizer) {
+            sendPaymentRejectedEmail(
+                { name: organizer.name, email: organizer.email },
+                { name: dbEvent.name }
+            ).catch((err: any) => console.error("⚠️ Error enviando email de pago rechazado:", err));
+        }
+    }
 
     console.log(`❌ Pago rechazado vía webhook: orderId=${payment.orderId}`);
 

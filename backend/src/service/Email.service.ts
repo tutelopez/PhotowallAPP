@@ -90,6 +90,33 @@ export const sendPlanThankYouEmail = async (
   }
 };
 
+export const sendPaymentRejectedEmail = async (
+  user: { name: string; email: string },
+  event: { name: string }
+) => {
+  try {
+    const html = wrapTemplate(
+      `Problemas con tu pago ❌`,
+      `
+      <p>Hola ${user.name}, ha habido un problema procesando el pago de tu plan para el evento <strong>"${event.name}"</strong>.</p>
+      <p>El cargo ha sido rechazado o cancelado. Puedes volver a intentar realizar el pago desde el panel de tu evento.</p>
+      <a href="${FRONTEND_URL}/dashboard"
+         style="display:inline-block; margin-top:12px; background:#EF4444; color:#F8F7FF; text-decoration:none; padding:12px 24px; border-radius:100px; font-weight:600; font-size:14px;">
+        Reintentar pago
+      </a>
+      `
+    );
+    await transporter.sendMail({
+      from: FROM,
+      to: user.email,
+      subject: `❌ Problemas con el pago de "${event.name}"`,
+      html
+    });
+  } catch (err) {
+    console.error('🔴 Error enviando correo de pago rechazado:', err);
+  }
+};
+
 export const sendExpirationReminderEmail = async (
   user: { name: string; email: string },
   event: { name: string; slug: string },
