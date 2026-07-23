@@ -68,7 +68,7 @@ interface FaqItem {
           <div class="cta-actions">
             <a routerLink="/events/new" class="btn-pw-primary">Crear evento gratis</a>
             <a routerLink="/precios" class="btn-pw-ghost">Ver precios</a>
-            <a href="mailto:soporte@photowall.app" class="btn-pw-ghost">
+            <a href="mailto:hola.photowall@gmail.com" class="btn-pw-ghost">
               <i class="bi bi-envelope-fill"></i> Contactar soporte
             </a>
           </div>

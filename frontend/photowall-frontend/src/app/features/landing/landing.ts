@@ -161,20 +161,20 @@ import { AuthService } from '../../core/services/auth.service';
         <a routerLink="/precios">Precios</a>
         <a routerLink="/terminos">Términos</a>
         <a routerLink="/privacidad">Privacidad</a>
-        <a href="mailto:thefilesystem1024@gmail.com">Contacto</a>
+        <a href="mailto:hola.photowall@gmail.com">Contacto</a>
       </div>
       <div class="footer-social">
-        <a href="#" target="_blank" title="Instagram" aria-label="Instagram">
+        <a href="https://www.instagram.com/photowall.app?igsh=ZXN3bGwwY3EwcTdk" target="_blank" title="Instagram" aria-label="Instagram">
           <i class="bi bi-instagram"></i>
         </a>
-        <a href="#" target="_blank" title="Facebook" aria-label="Facebook">
+        <a href="https://www.facebook.com/share/18BHtELPwB/" target="_blank" title="Facebook" aria-label="Facebook">
           <i class="bi bi-facebook"></i>
         </a>
-        <a href="mailto:thefilesystem1024@gmail.com" title="Correo" aria-label="Correo">
+        <a href="mailto:hola.photowall@gmail.com" title="Correo" aria-label="Correo">
           <i class="bi bi-envelope"></i>
         </a>
       </div>
-      <div class="footer-copy">© 2025 PhotoWall</div>
+      <div class="footer-copy">© 2026 PhotoWall</div>
     </footer>
   `,
   styleUrl: './landing.scss'
