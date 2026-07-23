@@ -1,192 +1,133 @@
-# 📸 PhotoWall – Eventos con Fotos en Vivo vía QR
+# 📸 PhotoWall – Plataforma SaaS para Eventos en Vivo
 
-**PhotoWall** es una plataforma web para eventos donde los invitados pueden subir fotos escaneando un **QR**, verlas en una **galería en tiempo real** y proyectarlas durante el evento.
+**PhotoWall** es una plataforma web completa tipo SaaS donde los invitados pueden subir fotos y mensajes escaneando un **QR**, viéndolos en una **galería en tiempo real** y proyectándolos durante el evento.
 Ideal para **bodas, cumpleaños, aniversarios, eventos empresariales y celebraciones especiales**.
 
 ---
 
-## 🚀 Funcionalidades (en progreso)
+## 🚀 Funcionalidades Principales
 
-### 👤 Organizadores
+### 👤 Organizadores (Usuarios Registrados)
+* Creación de cuenta con **Correo/Contraseña** o **Google Auth**.
+* Dashboard de gestión para crear y administrar eventos ilimitados.
+* Diferentes **Planes y Precios** (Free, Esencial, Estándar, Premium) con pasarela de pago **PayPal** integrada.
+* Generación automática de códigos QR y enlaces cortos (`/e/slug`).
+* Gestión de moderación: eliminación de fotos inapropiadas en tiempo real.
 
-* Crear eventos (nombre, fecha, tipo)
-* Generar QR público por evento
-* Ver todas las fotos del evento
-* Eliminar fotos inapropiadas
-* Gestionar eventos propios (sin acceso cruzado)
+### 🎉 Invitados (Acceso sin login)
+* Acceso ultra rápido al evento escaneando el código QR.
+* Identificación simple mediante nombre (creación de sesión anónima en localStorage).
+* Subida de fotos instantánea almacenada en **Cloudinary**.
+* Envío de mensajes y dedicatorias al organizador (filtradas automáticamente contra groserías).
+* Visualización de la galería pública del evento en tiempo real.
 
-### 🎉 Invitados (sin cuenta)
+### 👑 SuperAdmin (Administración Global)
+* Panel de control central (`/superadmin`) protegido con métricas y gráficas financieras.
+* Estadísticas en tiempo real (Ingresos totales, usuarios, fotos, invitados).
+* Gestión global: Cambiar planes de usuarios manualmente, auditar transacciones.
+* Herramientas de sistema: Poblar BD (Seeder), limpiar eventos inactivos, y *Factory Reset*.
+* Script de consola de ultra-seguridad para creación en Producción.
 
-* Acceso al evento vía QR
-* Ingresar su nombre (sin registro)
-* Subir fotos al evento
-* Ver galería pública del evento
-
-### 🖥️ Proyección (próximamente)
-
-* Vista especial para proyectar fotos en vivo
-* Actualización en tiempo real (WebSockets)
-
----
-
-## 🧠 Arquitectura del Proyecto
-
-### Backend
-
-* **Node.js**
-* **Express**
-* **TypeScript**
-* **MongoDB + Mongoose**
-* Arquitectura **MVC modular**
-* Identificación de invitados sin login (Guest Token)
-
-### Frontend (en desarrollo)
-
-* **Angular**
-* Consumo de API REST
-* Vistas públicas y privadas
+### 🖥️ Proyección en Vivo
+* Vista `/projection/:slug` optimizada para pantallas gigantes.
+* Sincronización milimétrica usando **WebSockets (Socket.IO)**.
+* Animaciones modernas, moderación automática y alertas en vivo.
 
 ---
 
-## 🗂️ Estructura del Backend
+## 🧠 Arquitectura Tecnológica
 
-```
-src/
- ├─ config/
- │   └─ db.ts
- ├─ middlewares/
- │   └─ guest.middleware.ts
- ├─ modules/
- │   ├─ events/
- │   ├─ guests/
- │   ├─ photos/        (pendiente)
- │   ├─ gallery/       (pendiente)
- │   └─ projection/    (pendiente)
- ├─ routes/
- ├─ types/
- │   └─ express.d.ts
- ├─ utils/
- │   ├─ slugify.ts
- │   └─ qr.ts
- ├─ app.ts
- └─ server.ts
-```
+### Backend (API REST & WebSockets)
+* **Node.js + Express** (TypeScript)
+* **MongoDB + Mongoose** (Modelos relacionales: Usuarios, Eventos, Fotos, Mensajes, Pagos)
+* **Socket.IO** (Comunicación bidireccional en tiempo real)
+* **JWT (JSON Web Tokens)** (Autenticación y Seguridad)
+* **Cloudinary** (Almacenamiento y optimización de imágenes)
+* **PayPal REST API** (Procesamiento de pagos SaaS)
+
+### Frontend (SPA)
+* **Angular** (Standalone Components, Signals, Control Flow)
+* Diseño moderno y responsivo con **Glassmorphism**, animaciones fluidas.
+* Guardas de rutas (`authGuard`, `superAdminGuard`) e Interceptores HTTP.
+* Carga de archivos y previsualización de imágenes integradas.
 
 ---
 
-## 🔐 Identificación de Invitados (sin login)
+## 🔐 Seguridad y Accesos
 
-Los invitados **no crean cuenta**.
-
-Flujo:
-
-1. Escanean el QR del evento
-2. Ingresan su nombre
-3. El backend crea una **Guest Session**
-4. Se genera un `guestToken` (UUID)
-5. El frontend guarda el token en `localStorage`
-6. El token se envía en cada request (`x-guest-token`)
-
-✔️ Sin emails
-✔️ Sin contraseñas
-✔️ Experiencia rápida y segura
+1. **Organizadores:** Acceso vía token JWT seguro.
+2. **Invitados:** Uso de *Guest Token* generado dinámicamente y validado en cada subida de foto/mensaje para evitar spam.
+3. **SuperAdmin:** 
+   - **En Desarrollo:** Accesible creando la cuenta vía API si coincide el `SUPER_ADMIN_SECRET`.
+   - **En Producción:** Bloqueo total de API. Solo el administrador del servidor puede crear la cuenta vía CLI interactiva.
 
 ---
 
-## 📦 Instalación (Backend)
+## 📦 Guía de Instalación Rápida
 
 ### 1️⃣ Clonar el repositorio
-
 ```bash
 git clone https://github.com/tu-usuario/photowall.git
-cd photowall/backend
+cd photowall
 ```
 
-### 2️⃣ Instalar dependencias
-
+### 2️⃣ Configurar Backend
 ```bash
+cd backend
 npm install
 ```
+Crear archivo `.env` en `backend/` basado en `.env.example` con tus credenciales de MongoDB, JWT, Cloudinary, Google Auth y PayPal.
 
-### 3️⃣ Variables de entorno
-
-Crear `.env`:
-
-```env
-PORT=3000
-MONGO_URI=mongodb://localhost:27017/photowall
-```
-
-### 4️⃣ Ejecutar en desarrollo
-
+Levantar servidor en desarrollo:
 ```bash
 npm run dev
 ```
 
----
-
-## 🔌 Endpoints principales (actuales)
-
-### Crear evento
-
-```http
-POST /api/events
+### 3️⃣ Configurar Frontend
+En una nueva terminal:
+```bash
+cd frontend/photowall-frontend
+npm install
 ```
-
-### Obtener evento por slug
-
-```http
-GET /api/events/:slug
-```
-
-### Unirse a evento (invitado)
-
-```http
-POST /api/guests/join/:slug
-```
-
-Header (en requests protegidos):
-
-```http
-x-guest-token: <guest_token>
+Levantar aplicación Angular:
+```bash
+npm start
 ```
 
 ---
 
-## 🧪 Estado actual del proyecto
+## 👑 Gestión del SuperAdmin
 
-* [x] Backend base con TypeScript
-* [x] Eventos (CRUD inicial)
-* [x] QR por evento
-* [x] Invitados sin login
-* [x] Middleware de identificación de invitado
-* [ ] Subida de fotos (Cloudinary)
-* [ ] Galería pública
-* [ ] Proyección en vivo
-* [ ] Filtro de contenido con IA
+Para administrar la plataforma de forma global, PhotoWall cuenta con un **Panel SuperAdmin** (`/superadmin`).
 
----
+### Crear el SuperAdmin (Máxima Seguridad)
+Nunca debes exponer endpoints públicos para crear administradores en producción. Por ello, se ha creado un CLI interactivo:
 
-## 🤖 IA (idea futura)
-
-Integración futura para:
-
-* Detección de contenido inapropiado
-* Moderación automática de fotos
-* APIs posibles: Google Vision, AWS Rekognition, OpenAI Vision
+1. Abre la terminal en el servidor (en la carpeta `backend/`).
+2. Ejecuta el script de creación:
+   ```bash
+   # En desarrollo (local):
+   npm run create:superadmin
+   
+   # En producción (tras compilar con npm run build):
+   npm run create:superadmin:prod
+   ```
+3. Sigue las instrucciones en pantalla para asignar un nombre, correo y contraseña segura. 
+4. Ve al frontend, inicia sesión con esas credenciales y el sistema automáticamente te redigirá al Panel de SuperAdmin.
 
 ---
 
-## ✨ Visión
-
-PhotoWall busca ofrecer una experiencia:
-
-* 📱 **Simple para invitados**
-* 🎥 **Impactante para eventos**
-* 🛠️ **Robusta para organizadores**
+## 🧪 Estado Actual del Proyecto
+* [x] Backend estructurado, seguro y robusto.
+* [x] Autenticación dual (Local y Google Auth).
+* [x] Suscripciones y Pagos (SaaS con PayPal).
+* [x] Panel Organizador (Dashboard, Creación de eventos, Moderación).
+* [x] Panel SuperAdmin Global y herramientas de consola.
+* [x] Experiencia de Invitado (Subida de fotos, mensajes).
+* [x] Live WebSockets (Galería y Proyección).
+* [x] Profanity Filter (Bloqueo de groserías multilingüe).
+* [x] Despliegue en la nube listo.
 
 ---
-
 ## 📄 Licencia
-
 MIT
