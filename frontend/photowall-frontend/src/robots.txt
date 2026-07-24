@@ -5,4 +5,4 @@ Disallow: /superadmin/
 Disallow: /projection/
 Disallow: /e/
 
-Sitemap: https://photowall.com/sitemap.xml
+Sitemap: https://www.photowalleventos.com/sitemap.xml

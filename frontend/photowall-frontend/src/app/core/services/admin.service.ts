@@ -118,4 +118,16 @@ export class AdminService {
   seedDatabase(): Observable<any> {
     return this.http.post(`${this.base}/seed`, {});
   }
+
+  // Backup and Restore
+  downloadBackup(): Observable<Blob> {
+    return this.http.get(`${this.base}/backup`, { responseType: 'blob' });
+  }
+
+  restoreBackup(file: File): Observable<any> {
+    const formData = new FormData();
+    formData.append('backup', file);
+    const headers = new HttpHeaders().set('x-confirm', 'RESTAURAR');
+    return this.http.post(`${this.base}/restore`, formData, { headers });
+  }
 }

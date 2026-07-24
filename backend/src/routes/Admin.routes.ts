@@ -17,10 +17,13 @@ import {
       getSystemStats,
       deleteAllEvents,
       resetAllData,
-      seedDatabase 
+      seedDatabase,
+      downloadDatabaseBackup,
+      restoreDatabaseBackup
     } from '../controller/Admin.controller';
 import { UserRole } from '../models/User.model';
 import { setEventPlan } from '../controller/Admin.controller';
+import { uploadBackup } from '../config/multer.backup';
 
 const router = Router();
 
@@ -48,6 +51,10 @@ router.delete('/organizers/:organizerId', ensureAuth([UserRole.SUPER_ADMIN]), de
 router.delete('/reset-all', ensureAuth([UserRole.SUPER_ADMIN]), resetAllData);
 router.patch('/events/:eventId/plan', ensureAuth([UserRole.SUPER_ADMIN]), setEventPlan);
 
+
+// BACKUP Y RESTORE (SUPER ADMIN)
+router.get('/backup', ensureAuth([UserRole.SUPER_ADMIN]), downloadDatabaseBackup);
+router.post('/restore', ensureAuth([UserRole.SUPER_ADMIN]), uploadBackup.single('backup'), restoreDatabaseBackup);
 
 //POBLAR BASE DE DATOS
 router.post('/seed', ensureAuth([UserRole.SUPER_ADMIN]), seedDatabase);

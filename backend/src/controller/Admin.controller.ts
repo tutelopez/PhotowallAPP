@@ -11,9 +11,85 @@ import { PlanType } from '../models/Plan';
 import { sendPlanThankYouEmail } from '../service/Email.service';
 import { MessageModel } from '../models/Message.model';
 import { PaymentModel, PaymentStatus } from '../models/Payment.model';
-
+import { exec } from 'child_process';
+import path from 'path';
+import fs from 'fs';
 
 const SUPER_ADMIN_SECRET = process.env.SUPER_ADMIN_SECRET;
+
+export const downloadDatabaseBackup = async (req: Request, res: Response) => {
+  try {
+    const admin = (req as any).superAdmin || await UserModel.findById(req.header('x-admin-id') || (req as any).user?.userId);
+    if (!admin || admin.role !== UserRole.SUPER_ADMIN && admin.role !== 'super_admin') {
+      return res.status(403).json({ message: 'Acceso solo para SuperAdmin' });
+    }
+
+    const mongoUri = process.env.MONGO_URI;
+    if (!mongoUri) return res.status(500).json({ message: 'MONGO_URI no está definido' });
+
+    // mongodump --uri="mongodb+srv://..." --archive --gzip
+    // Redirigimos el stdout directamente a la respuesta HTTP
+    res.setHeader('Content-Type', 'application/gzip');
+    res.setHeader('Content-Disposition', `attachment; filename="photowall-backup-${Date.now()}.gz"`);
+
+    const child = exec(`mongodump --uri="${mongoUri}" --archive --gzip`);
+
+    if (child.stdout) {
+      child.stdout.pipe(res);
+    }
+    
+    child.on('error', (err) => {
+      console.error('Error ejecutando mongodump:', err);
+      if (!res.headersSent) res.status(500).json({ message: 'Error generando el respaldo' });
+    });
+
+  } catch (error) {
+    console.error(error);
+    if (!res.headersSent) res.status(500).json({ message: 'Error en la solicitud de respaldo' });
+  }
+};
+
+export const restoreDatabaseBackup = async (req: Request, res: Response) => {
+  try {
+    const admin = (req as any).superAdmin || await UserModel.findById(req.header('x-admin-id') || (req as any).user?.userId);
+    if (!admin || admin.role !== UserRole.SUPER_ADMIN && admin.role !== 'super_admin') {
+      return res.status(403).json({ message: 'Acceso solo para SuperAdmin' });
+    }
+
+    const confirm = req.header('x-confirm');
+    if (confirm !== 'RESTAURAR') {
+      return res.status(400).json({ message: 'Confirmación inválida. Envía x-confirm: RESTAURAR' });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ message: 'No se subió ningún archivo de respaldo' });
+    }
+
+    const mongoUri = process.env.MONGO_URI;
+    if (!mongoUri) return res.status(500).json({ message: 'MONGO_URI no está definido' });
+
+    const filePath = req.file.path;
+
+    // mongorestore --uri="..." --archive=archivo.gz --gzip --drop
+    const command = `mongorestore --uri="${mongoUri}" --archive="${filePath}" --gzip --drop`;
+    
+    exec(command, (error, stdout, stderr) => {
+      // Borramos el archivo temporal
+      fs.unlink(filePath, (err) => { if (err) console.error('Error borrando archivo temp:', err); });
+      
+      if (error) {
+        console.error('Error restaurando DB:', error);
+        return res.status(500).json({ message: 'Error restaurando la base de datos' });
+      }
+      
+      return res.json({ message: 'Base de datos restaurada correctamente' });
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Error procesando la restauración' });
+  }
+};
+
 
 
 export const setEventPlan = async (req: Request, res: Response) => {

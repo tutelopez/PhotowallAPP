@@ -444,6 +444,33 @@ import { ToastService } from '../../core/services/toast';
               </div>
             </div>
           </div>
+
+          <!-- Backup & Restore Card -->
+          <div class="system-card" style="grid-column: 1 / -1; background: rgba(59, 130, 246, 0.05); border-color: rgba(59, 130, 246, 0.3);">
+            <div class="system-icon" style="background: rgba(59, 130, 246, 0.15); color: #60A5FA;"><i class="bi bi-hdd-network-fill"></i></div>
+            <div class="system-content" style="display: flex; flex-direction: column; width: 100%;">
+              <h3>Seguridad y Respaldos</h3>
+              <p>Descarga una copia completa de la base de datos o restaura el sistema desde un archivo de respaldo previo (.gz).</p>
+              
+              <div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
+                <button class="btn-pw-primary" (click)="downloadBackup()" [disabled]="backupLoading()">
+                  @if (backupLoading()) { <span class="pw-spinner-sm"></span> Generando... } @else { <i class="bi bi-cloud-arrow-down-fill"></i> Descargar Respaldo }
+                </button>
+                
+                <div style="display: flex; gap: 0.5rem; align-items: center; border-left: 1px solid rgba(255,255,255,0.1); padding-left: 1rem;">
+                  <input type="file" #backupFile accept=".gz" style="display: none" (change)="onBackupFileSelected($event)">
+                  <button class="btn-pw-ghost" (click)="backupFile.click()" [disabled]="restoreLoading()">
+                    <i class="bi bi-folder-symlink"></i> Seleccionar Archivo
+                  </button>
+                  <span style="font-size: 0.8rem; color: #A78BFA;" *ngIf="selectedBackupFile()">{{ selectedBackupFile()?.name }}</span>
+                  <button class="btn-danger-solid" *ngIf="selectedBackupFile()" (click)="restoreBackup()" [disabled]="restoreLoading()">
+                    @if (restoreLoading()) { <span class="pw-spinner-sm"></span> } @else { <i class="bi bi-cloud-arrow-up-fill"></i> Restaurar Ahora }
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </section>
       }
     </div>
@@ -1091,6 +1118,65 @@ export class SuperAdminComponent implements OnInit {
       error: () => {
         this.toast.error('Error durante el reinicio de la base de datos.');
         this.actionLoading.set(false);
+      }
+    });
+  }
+
+  // Backups
+  backupLoading = signal(false);
+  restoreLoading = signal(false);
+  selectedBackupFile = signal<File | null>(null);
+
+  downloadBackup() {
+    this.backupLoading.set(true);
+    this.adminSvc.downloadBackup().subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `photowall-backup-${Date.now()}.gz`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        this.backupLoading.set(false);
+        this.toast.success('Respaldo descargado exitosamente');
+      },
+      error: () => {
+        this.toast.error('Error al generar el respaldo');
+        this.backupLoading.set(false);
+      }
+    });
+  }
+
+  onBackupFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      this.selectedBackupFile.set(input.files[0]);
+    }
+  }
+
+  restoreBackup() {
+    const file = this.selectedBackupFile();
+    if (!file) return;
+
+    const confirmacion = prompt('⚠️ PELIGRO EXTREMO: Vas a sobreescribir toda la base de datos con este archivo. Perderás cualquier cambio reciente. Escribe "RESTAURAR" en mayúsculas para continuar:');
+    if (confirmacion !== 'RESTAURAR') {
+      this.toast.error('Restauración cancelada');
+      return;
+    }
+
+    this.restoreLoading.set(true);
+    this.adminSvc.restoreBackup(file).subscribe({
+      next: () => {
+        this.toast.success('¡Base de datos restaurada con éxito!');
+        this.selectedBackupFile.set(null);
+        this.restoreLoading.set(false);
+        this.loadAllData(); // Recargar los datos restaurados
+      },
+      error: (err) => {
+        this.toast.error(err.error?.message || 'Error crítico al restaurar la base de datos');
+        this.restoreLoading.set(false);
       }
     });
   }
